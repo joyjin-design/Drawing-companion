@@ -18,7 +18,7 @@
 
 body {
   margin: 0;
-  background: linear-gradient(160deg, #8fe0ff 0%, #c4d3ff 45%, #e1b9ff 100%);
+  background: #ffffff;
   min-height: 100vh;
   color: var(--ink);
 }
