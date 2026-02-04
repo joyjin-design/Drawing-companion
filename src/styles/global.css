@@ -73,7 +73,7 @@ button {
 
 .screen {
   min-height: 100vh;
-  padding: 28px 24px 36px;
+  padding: 28px 24px 48px;
   display: flex;
   flex-direction: column;
   gap: 20px;
@@ -109,7 +109,7 @@ button {
   position: relative;
   display: grid;
   place-items: center;
-  margin-top: 18px;
+  margin-top: 32px;
   height: 340px;
 }
 
@@ -180,6 +180,8 @@ button {
 .top-card {
   right: 26px;
   top: 24px;
+  width: 76px;
+  height: 76px;
   animation-delay: -1s;
 }
 
@@ -190,6 +192,7 @@ button {
 }
 
 .home-copy {
+  margin-top: 40px;
   text-align: center;
   padding: 0 10px;
 }
@@ -200,14 +203,16 @@ button {
 }
 
 .home-copy p {
+  font-size: 14px;
   color: var(--muted);
   line-height: 1.5;
-  margin: 0;
+  margin: 0 0 32px;
 }
 
 .home-actions {
   display: flex;
   flex-direction: column;
+  justify-content: flex-start;
   gap: 14px;
 }
 
@@ -225,13 +230,14 @@ button {
 .primary-button {
   background: linear-gradient(135deg, #6f49ff, #5124d9);
   color: white;
-  box-shadow: var(--shadow);
+  box-shadow: 1px 14px 30px 0px rgba(74, 91, 140, 0.2);
   transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
 .secondary-button {
   background: #efe7ff;
   color: #2b2f44;
+  box-shadow: 1px 14px 30px 0px rgba(74, 91, 140, 0.2);
   transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
@@ -245,7 +251,7 @@ button {
 .secondary-button:hover,
 .ghost-button:hover {
   transform: translateY(-2px);
-  box-shadow: 0 14px 30px rgba(74, 91, 140, 0.2);
+  box-shadow: 1px 14px 30px 0px rgba(74, 91, 140, 0.2);
 }
 
 .divider {
@@ -497,6 +503,302 @@ button {
 
 .file-input {
   display: none;
+}
+
+/* Capture Reference overlay (camera UI) */
+.capture-reference-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  background: #1a1c24;
+  display: flex;
+  flex-direction: column;
+}
+
+.capture-reference-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  background: rgba(0, 0, 0, 0.3);
+  color: #ffffff;
+  flex-shrink: 0;
+}
+
+.capture-reference-back,
+.capture-reference-flash {
+  border: none;
+  background: transparent;
+  color: #ffffff;
+  font-size: 24px;
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  padding: 0;
+}
+
+.capture-reference-title {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.capture-reference-viewfinder {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  background: #0e0f13;
+}
+
+.capture-reference-preview {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.capture-reference-grid {
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.12) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.12) 1px, transparent 1px);
+  background-size: 33.333% 33.333%;
+  pointer-events: none;
+}
+
+.capture-reference-guide {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.capture-reference-brackets {
+  position: absolute;
+  inset: 0;
+}
+.capture-reference-brackets .bracket {
+  position: absolute;
+  width: 24px;
+  height: 24px;
+  border-color: rgba(255, 255, 255, 0.9);
+  border-style: solid;
+  border-width: 0;
+}
+.capture-reference-brackets .bracket.tl {
+  top: 50%;
+  left: 50%;
+  margin-top: -80px;
+  margin-left: -80px;
+  border-left-width: 3px;
+  border-top-width: 3px;
+}
+.capture-reference-brackets .bracket.tr {
+  top: 50%;
+  left: 50%;
+  margin-top: -80px;
+  margin-left: 56px;
+  border-right-width: 3px;
+  border-top-width: 3px;
+}
+.capture-reference-brackets .bracket.bl {
+  top: 50%;
+  left: 50%;
+  margin-top: 56px;
+  margin-left: -80px;
+  border-left-width: 3px;
+  border-bottom-width: 3px;
+}
+.capture-reference-brackets .bracket.br {
+  top: 50%;
+  left: 50%;
+  margin-top: 56px;
+  margin-left: 56px;
+  border-right-width: 3px;
+  border-bottom-width: 3px;
+}
+
+.capture-reference-center {
+  position: relative;
+  width: 120px;
+  height: 120px;
+  display: grid;
+  place-items: center;
+}
+.capture-reference-center .center-dashed {
+  position: absolute;
+  width: 80px;
+  height: 80px;
+  border: 2px dashed rgba(255, 255, 255, 0.5);
+  border-radius: 50%;
+}
+.capture-reference-center .center-solid {
+  width: 40px;
+  height: 40px;
+  background: rgba(60, 62, 75, 0.9);
+  border-radius: 50%;
+}
+
+.capture-reference-instruction {
+  position: absolute;
+  bottom: 28%;
+  margin: 0;
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.capture-reference-tip {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 20px;
+  background: rgba(0, 0, 0, 0.25);
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 13px;
+  flex-shrink: 0;
+}
+.capture-reference-tip-icon {
+  font-size: 16px;
+}
+.capture-reference-tip-text {
+  flex: 1;
+}
+
+.capture-reference-controls {
+  padding: 20px 24px 32px;
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.5), transparent);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+  flex-shrink: 0;
+}
+
+.capture-reference-modes {
+  position: relative;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 48px;
+  padding-bottom: 8px;
+}
+.capture-reference-mode-rail {
+  position: absolute;
+  bottom: 36px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 180px;
+  height: 24px;
+  border-bottom: 2px solid rgba(147, 112, 219, 0.4);
+  border-radius: 0 0 50% 50%;
+  pointer-events: none;
+}
+.capture-reference-mode-indicator {
+  position: absolute;
+  bottom: -2px;
+  width: 2px;
+  height: 16px;
+  background: #6f49ff;
+  transform: translateX(-50%);
+  transition: left 0.2s ease;
+}
+.capture-reference-mode-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  border: none;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 12px;
+  cursor: pointer;
+  padding: 0;
+  transition: color 0.2s ease;
+}
+.capture-reference-mode-btn.active,
+.capture-reference-mode-btn:hover {
+  color: #ffffff;
+}
+.mode-icon {
+  display: block;
+  width: 28px;
+  height: 28px;
+}
+.mode-form {
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='1.5' stroke-linejoin='round'%3E%3Cpath d='M12 2l8 5v10l-8 5-8-5V7l8-5z'/%3E%3C/svg%3E") center/contain no-repeat;
+}
+.mode-shading {
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 8h16'/%3E%3Cpath d='M4 12h16'/%3E%3Cpath d='M4 16h12'/%3E%3C/svg%3E") center/contain no-repeat;
+}
+
+.capture-reference-capture-btn {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  border: 4px solid rgba(111, 73, 255, 0.6);
+  background: linear-gradient(135deg, #8b7dd4 0%, #6f49ff 100%);
+  cursor: pointer;
+  box-shadow: 0 4px 20px rgba(111, 73, 255, 0.4);
+  flex-shrink: 0;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.capture-reference-capture-btn:hover {
+  transform: scale(1.05);
+  box-shadow: 0 6px 24px rgba(111, 73, 255, 0.5);
+}
+.capture-reference-capture-btn:active {
+  transform: scale(0.98);
+}
+
+/* Legacy camera overlay (kept for .camera-error reference) */
+.camera-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  background: #0e0f13;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+}
+
+.camera-preview {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.camera-controls {
+  position: relative;
+  display: flex;
+  gap: 12px;
+  padding: 24px 20px 32px;
+  justify-content: center;
+  align-items: center;
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.7), transparent);
+}
+
+.camera-capture-btn {
+  min-width: 140px;
+}
+
+.camera-error {
+  margin: 0;
+  padding: 12px 16px;
+  font-size: 13px;
+  color: var(--muted);
+  background: rgba(255, 255, 255, 0.9);
+  border-radius: 12px;
+  margin-bottom: 8px;
+  text-align: center;
 }
 
 @keyframes orbit-spin {
