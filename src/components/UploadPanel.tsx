@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { getOutlineFromImage } from "../gemini";
 
 export type UploadPanelProps = {
   referenceUrl?: string | null;
@@ -24,12 +25,17 @@ export default function UploadPanel({
   const [cameraActive, setCameraActive] = useState(false);
   const [cameraError, setCameraError] = useState<string | null>(null);
   const [captureMode, setCaptureMode] = useState<"form" | "shading">("form");
+  const [outlineDataUrl, setOutlineDataUrl] = useState<string | null>(null);
+  const [outlineLoading, setOutlineLoading] = useState(false);
+  const [outlineError, setOutlineError] = useState<string | null>(null);
 
   const stopCamera = useCallback(() => {
     streamRef.current?.getTracks().forEach((t) => t.stop());
     streamRef.current = null;
     setCameraActive(false);
     setCameraError(null);
+    setOutlineDataUrl(null);
+    setOutlineError(null);
   }, []);
 
   const startCamera = useCallback(async () => {
@@ -63,26 +69,88 @@ export default function UploadPanel({
     };
   }, [cameraActive]);
 
+  const captureFrameAsBase64 = useCallback((): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const video = videoRef.current;
+      if (!video || video.videoWidth === 0) {
+        reject(new Error("Video not ready"));
+        return;
+      }
+      const canvas = document.createElement("canvas");
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) {
+        reject(new Error("No canvas context"));
+        return;
+      }
+      ctx.drawImage(video, 0, 0);
+      const dataUrl = canvas.toDataURL("image/jpeg", 0.85);
+      const base64 = dataUrl.split(",")[1];
+      if (!base64) reject(new Error("Failed to encode frame"));
+      else resolve(base64);
+    });
+  }, []);
+
+  const getOutline = useCallback(async () => {
+    setOutlineError(null);
+    setOutlineLoading(true);
+    try {
+      const base64 = await captureFrameAsBase64();
+      const result = await getOutlineFromImage(base64);
+      if ("error" in result) {
+        setOutlineError(result.error);
+        setOutlineDataUrl(null);
+      } else {
+        setOutlineDataUrl(result.dataUrl);
+      }
+    } catch (e) {
+      setOutlineError(e instanceof Error ? e.message : "Failed to capture frame");
+      setOutlineDataUrl(null);
+    } finally {
+      setOutlineLoading(false);
+    }
+  }, [captureFrameAsBase64]);
+
   const capturePhoto = useCallback(() => {
     const video = videoRef.current;
     if (!video || !streamRef.current) return;
-    const canvas = document.createElement("canvas");
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
-    ctx.drawImage(video, 0, 0);
-    canvas.toBlob(
-      (blob) => {
-        if (!blob) return;
-        const file = new File([blob], "camera.jpg", { type: "image/jpeg" });
-        stopCamera();
-        onReferenceSelected(file);
-      },
-      "image/jpeg",
-      0.9
-    );
-  }, [onReferenceSelected, stopCamera]);
+
+    const useOutline = captureMode === "form" && outlineDataUrl;
+    if (useOutline) {
+      fetch(outlineDataUrl)
+        .then((r) => r.blob())
+        .then((blob) => {
+          const file = new File([blob], "reference-outline.png", { type: "image/png" });
+          stopCamera();
+          onReferenceSelected(file);
+        })
+        .catch(() => {
+          usePhotoFallback();
+        });
+      return;
+    }
+
+    function usePhotoFallback() {
+      const canvas = document.createElement("canvas");
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) return;
+      ctx.drawImage(video, 0, 0);
+      canvas.toBlob(
+        (blob) => {
+          if (!blob) return;
+          const file = new File([blob], "camera.jpg", { type: "image/jpeg" });
+          stopCamera();
+          onReferenceSelected(file);
+        },
+        "image/jpeg",
+        0.9
+      );
+    }
+    usePhotoFallback();
+  }, [captureMode, outlineDataUrl, onReferenceSelected, stopCamera]);
 
   return (
     <div className="screen home-screen">
@@ -111,11 +179,24 @@ export default function UploadPanel({
             <video
               ref={videoRef}
               className="capture-reference-preview"
+              style={captureMode === "form" && outlineDataUrl ? { display: "none" } : undefined}
               playsInline
               muted
               autoPlay
             />
+            {captureMode === "form" && outlineDataUrl && (
+              <img
+                src={outlineDataUrl}
+                alt="Outline reference"
+                className="capture-reference-preview capture-reference-outline-preview"
+              />
+            )}
             <div className="capture-reference-grid" aria-hidden />
+            {outlineError && captureMode === "form" && (
+              <p className="capture-reference-outline-error" role="alert">
+                {outlineError}
+              </p>
+            )}
             <div className="capture-reference-guide">
               <div className="capture-reference-brackets">
                 <span className="bracket tl" />
@@ -158,13 +239,28 @@ export default function UploadPanel({
               <button
                 type="button"
                 className={`capture-reference-mode-btn ${captureMode === "shading" ? "active" : ""}`}
-                onClick={() => setCaptureMode("shading")}
+                onClick={() => {
+                  setCaptureMode("shading");
+                  setOutlineDataUrl(null);
+                  setOutlineError(null);
+                }}
                 aria-pressed={captureMode === "shading"}
               >
                 <span className="mode-icon mode-shading" aria-hidden />
                 <span>Shading</span>
               </button>
             </div>
+            {captureMode === "form" && (
+              <button
+                type="button"
+                className="capture-reference-outline-btn"
+                onClick={getOutline}
+                disabled={outlineLoading}
+                aria-label={outlineDataUrl ? "Refresh outline" : "Get outline view"}
+              >
+                {outlineLoading ? "Generating…" : outlineDataUrl ? "Refresh outline" : "Show outline"}
+              </button>
+            )}
             <button
               type="button"
               className="capture-reference-capture-btn"

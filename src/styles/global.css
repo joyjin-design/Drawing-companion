@@ -732,10 +732,10 @@ button {
   height: 28px;
 }
 .mode-form {
-  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='1.5' stroke-linejoin='round'%3E%3Cpath d='M12 2l8 5v10l-8 5-8-5V7l8-5z'/%3E%3C/svg%3E") center/contain no-repeat;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23ffffff' stroke-width='1.5' stroke-linejoin='round'%3E%3Cpath d='M12 2l8 5v10l-8 5-8-5V7l8-5z'/%3E%3C/svg%3E") center/contain no-repeat;
 }
 .mode-shading {
-  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 8h16'/%3E%3Cpath d='M4 12h16'/%3E%3Cpath d='M4 16h12'/%3E%3C/svg%3E") center/contain no-repeat;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23ffffff' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 8h16'/%3E%3Cpath d='M4 12h16'/%3E%3Cpath d='M4 16h12'/%3E%3C/svg%3E") center/contain no-repeat;
 }
 
 .capture-reference-capture-btn {
@@ -755,6 +755,44 @@ button {
 }
 .capture-reference-capture-btn:active {
   transform: scale(0.98);
+}
+
+.capture-reference-outline-btn {
+  border: none;
+  border-radius: 12px;
+  padding: 10px 18px;
+  font-size: 14px;
+  font-weight: 600;
+  background: rgba(255, 255, 255, 0.95);
+  color: var(--ink);
+  cursor: pointer;
+  transition: opacity 0.2s ease, transform 0.15s ease;
+}
+.capture-reference-outline-btn:hover:not(:disabled) {
+  transform: translateY(-1px);
+}
+.capture-reference-outline-btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.capture-reference-outline-preview {
+  object-fit: contain;
+  background: #1a1c24;
+}
+.capture-reference-outline-error {
+  position: absolute;
+  bottom: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  margin: 0;
+  padding: 8px 12px;
+  font-size: 12px;
+  color: #fff;
+  background: rgba(180, 60, 60, 0.9);
+  border-radius: 8px;
+  max-width: 90%;
+  z-index: 5;
 }
 
 /* Legacy camera overlay (kept for .camera-error reference) */
