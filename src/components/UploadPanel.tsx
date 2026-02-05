@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { getOutlineFromImage } from "../gemini";
+import { getOutlineFromImage, getShadingFromImage } from "../gemini";
 
 export type UploadPanelProps = {
   referenceUrl?: string | null;
@@ -28,6 +28,10 @@ export default function UploadPanel({
   const [outlineDataUrl, setOutlineDataUrl] = useState<string | null>(null);
   const [outlineLoading, setOutlineLoading] = useState(false);
   const [outlineError, setOutlineError] = useState<string | null>(null);
+  const [shadingDataUrl, setShadingDataUrl] = useState<string | null>(null);
+  const [shadingLoading, setShadingLoading] = useState(false);
+  const [shadingError, setShadingError] = useState<string | null>(null);
+  const [generatingPreviewUrl, setGeneratingPreviewUrl] = useState<string | null>(null);
 
   const stopCamera = useCallback(() => {
     streamRef.current?.getTracks().forEach((t) => t.stop());
@@ -36,6 +40,9 @@ export default function UploadPanel({
     setCameraError(null);
     setOutlineDataUrl(null);
     setOutlineError(null);
+    setShadingDataUrl(null);
+    setShadingError(null);
+    setGeneratingPreviewUrl(null);
   }, []);
 
   const startCamera = useCallback(async () => {
@@ -92,11 +99,69 @@ export default function UploadPanel({
     });
   }, []);
 
+  const captureFrameAsDataUrl = useCallback((): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const video = videoRef.current;
+      if (!video || video.videoWidth === 0) {
+        reject(new Error("Video not ready"));
+        return;
+      }
+      const canvas = document.createElement("canvas");
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) {
+        reject(new Error("No canvas context"));
+        return;
+      }
+      ctx.drawImage(video, 0, 0);
+      resolve(canvas.toDataURL("image/jpeg", 0.85));
+    });
+  }, []);
+
+  /** Smaller frame for faster API upload and processing (rough preview only). */
+  const captureFrameAsBase64Small = useCallback((): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const video = videoRef.current;
+      if (!video || video.videoWidth === 0) {
+        reject(new Error("Video not ready"));
+        return;
+      }
+      const maxSize = 480;
+      let w = video.videoWidth;
+      let h = video.videoHeight;
+      if (w > maxSize || h > maxSize) {
+        if (w >= h) {
+          h = Math.round((h * maxSize) / w);
+          w = maxSize;
+        } else {
+          w = Math.round((w * maxSize) / h);
+          h = maxSize;
+        }
+      }
+      const canvas = document.createElement("canvas");
+      canvas.width = w;
+      canvas.height = h;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) {
+        reject(new Error("No canvas context"));
+        return;
+      }
+      ctx.drawImage(video, 0, 0, w, h);
+      const dataUrl = canvas.toDataURL("image/jpeg", 0.4);
+      const base64 = dataUrl.split(",")[1];
+      if (!base64) reject(new Error("Failed to encode frame"));
+      else resolve(base64);
+    });
+  }, []);
+
   const getOutline = useCallback(async () => {
     setOutlineError(null);
     setOutlineLoading(true);
     try {
-      const base64 = await captureFrameAsBase64();
+      const previewUrl = await captureFrameAsDataUrl();
+      setGeneratingPreviewUrl(previewUrl);
+      const base64 = await captureFrameAsBase64Small();
       const result = await getOutlineFromImage(base64);
       if ("error" in result) {
         setOutlineError(result.error);
@@ -109,8 +174,32 @@ export default function UploadPanel({
       setOutlineDataUrl(null);
     } finally {
       setOutlineLoading(false);
+      setGeneratingPreviewUrl(null);
     }
-  }, [captureFrameAsBase64]);
+  }, [captureFrameAsBase64Small, captureFrameAsDataUrl]);
+
+  const getShading = useCallback(async () => {
+    setShadingError(null);
+    setShadingLoading(true);
+    try {
+      const previewUrl = await captureFrameAsDataUrl();
+      setGeneratingPreviewUrl(previewUrl);
+      const base64 = await captureFrameAsBase64Small();
+      const result = await getShadingFromImage(base64);
+      if ("error" in result) {
+        setShadingError(result.error);
+        setShadingDataUrl(null);
+      } else {
+        setShadingDataUrl(result.dataUrl);
+      }
+    } catch (e) {
+      setShadingError(e instanceof Error ? e.message : "Failed to capture frame");
+      setShadingDataUrl(null);
+    } finally {
+      setShadingLoading(false);
+      setGeneratingPreviewUrl(null);
+    }
+  }, [captureFrameAsBase64Small, captureFrameAsDataUrl]);
 
   const capturePhoto = useCallback(() => {
     const video = videoRef.current;
@@ -122,6 +211,21 @@ export default function UploadPanel({
         .then((r) => r.blob())
         .then((blob) => {
           const file = new File([blob], "reference-outline.png", { type: "image/png" });
+          stopCamera();
+          onReferenceSelected(file);
+        })
+        .catch(() => {
+          usePhotoFallback();
+        });
+      return;
+    }
+
+    const useShading = captureMode === "shading" && shadingDataUrl;
+    if (useShading) {
+      fetch(shadingDataUrl)
+        .then((r) => r.blob())
+        .then((blob) => {
+          const file = new File([blob], "reference-shading.png", { type: "image/png" });
           stopCamera();
           onReferenceSelected(file);
         })
@@ -150,7 +254,7 @@ export default function UploadPanel({
       );
     }
     usePhotoFallback();
-  }, [captureMode, outlineDataUrl, onReferenceSelected, stopCamera]);
+  }, [captureMode, outlineDataUrl, shadingDataUrl, onReferenceSelected, stopCamera]);
 
   return (
     <div className="screen home-screen">
@@ -179,15 +283,40 @@ export default function UploadPanel({
             <video
               ref={videoRef}
               className="capture-reference-preview"
-              style={captureMode === "form" && outlineDataUrl ? { display: "none" } : undefined}
+              style={
+                (captureMode === "form" && outlineDataUrl) ||
+                (captureMode === "shading" && shadingDataUrl) ||
+                outlineLoading ||
+                shadingLoading
+                  ? { display: "none" }
+                  : undefined
+              }
               playsInline
               muted
               autoPlay
             />
+            {(outlineLoading || shadingLoading) && generatingPreviewUrl && (
+              <>
+                <img
+                  src={generatingPreviewUrl}
+                  alt=""
+                  className="capture-reference-preview capture-reference-generating-preview"
+                  aria-hidden
+                />
+                <div className="capture-reference-generating-label">Generating…</div>
+              </>
+            )}
             {captureMode === "form" && outlineDataUrl && (
               <img
                 src={outlineDataUrl}
                 alt="Outline reference"
+                className="capture-reference-preview capture-reference-outline-preview"
+              />
+            )}
+            {captureMode === "shading" && shadingDataUrl && (
+              <img
+                src={shadingDataUrl}
+                alt="Outline and shading reference"
                 className="capture-reference-preview capture-reference-outline-preview"
               />
             )}
@@ -197,19 +326,26 @@ export default function UploadPanel({
                 {outlineError}
               </p>
             )}
-            <div className="capture-reference-guide">
-              <div className="capture-reference-brackets">
-                <span className="bracket tl" />
-                <span className="bracket tr" />
-                <span className="bracket bl" />
-                <span className="bracket br" />
+            {shadingError && captureMode === "shading" && (
+              <p className="capture-reference-outline-error" role="alert">
+                {shadingError}
+              </p>
+            )}
+            {!(outlineDataUrl || shadingDataUrl) && (
+              <div className="capture-reference-guide">
+                <div className="capture-reference-brackets">
+                  <span className="bracket tl" />
+                  <span className="bracket tr" />
+                  <span className="bracket bl" />
+                  <span className="bracket br" />
+                </div>
+                <div className="capture-reference-center">
+                  <div className="center-dashed" />
+                  <div className="center-solid" />
+                </div>
+                <p className="capture-reference-instruction">Position your subject in frame</p>
               </div>
-              <div className="capture-reference-center">
-                <div className="center-dashed" />
-                <div className="center-solid" />
-              </div>
-              <p className="capture-reference-instruction">Position your subject in frame</p>
-            </div>
+            )}
           </div>
 
           <div className="capture-reference-tip">
@@ -221,20 +357,20 @@ export default function UploadPanel({
 
           <div className="capture-reference-controls">
             <div className="capture-reference-modes">
-              <div className="capture-reference-mode-rail">
-                <div
-                  className="capture-reference-mode-indicator"
-                  style={{ left: captureMode === "form" ? "calc(50% - 36px)" : "calc(50% + 36px)" }}
-                />
-              </div>
               <button
                 type="button"
                 className={`capture-reference-mode-btn ${captureMode === "form" ? "active" : ""}`}
-                onClick={() => setCaptureMode("form")}
+                onClick={() => {
+                  setCaptureMode("form");
+                  setShadingDataUrl(null);
+                  setShadingError(null);
+                  setOutlineError(null);
+                  getOutline();
+                }}
                 aria-pressed={captureMode === "form"}
               >
                 <span className="mode-icon mode-form" aria-hidden />
-                <span>Form</span>
+                <span>Outline</span>
               </button>
               <button
                 type="button"
@@ -243,6 +379,8 @@ export default function UploadPanel({
                   setCaptureMode("shading");
                   setOutlineDataUrl(null);
                   setOutlineError(null);
+                  setShadingError(null);
+                  getShading();
                 }}
                 aria-pressed={captureMode === "shading"}
               >
@@ -259,6 +397,17 @@ export default function UploadPanel({
                 aria-label={outlineDataUrl ? "Refresh outline" : "Get outline view"}
               >
                 {outlineLoading ? "Generating…" : outlineDataUrl ? "Refresh outline" : "Show outline"}
+              </button>
+            )}
+            {captureMode === "shading" && (
+              <button
+                type="button"
+                className="capture-reference-outline-btn"
+                onClick={getShading}
+                disabled={shadingLoading}
+                aria-label={shadingDataUrl ? "Refresh shading reference" : "Generate rough outline and shading"}
+              >
+                {shadingLoading ? "Generating…" : shadingDataUrl ? "Refresh" : "Generate again"}
               </button>
             )}
             <button

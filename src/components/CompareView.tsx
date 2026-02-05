@@ -16,6 +16,7 @@ export type CompareViewProps = {
   onOpenSessions: () => void;
   onAddReference: () => void;
   onAddDrawing: () => void;
+  onEvaluate?: () => void;
 };
 
 export default function CompareView({
@@ -31,9 +32,51 @@ export default function CompareView({
   onBack,
   onOpenSessions,
   onAddReference,
-  onAddDrawing
+  onAddDrawing,
+  onEvaluate
 }: CompareViewProps) {
   const [sliderValue, setSliderValue] = useState(50);
+  const sliderTrackRef = useRef<HTMLDivElement>(null);
+
+  const updateSliderFromClientX = (clientX: number) => {
+    const el = sliderTrackRef.current;
+    if (!el) return;
+    const rect = el.getBoundingClientRect();
+    const x = clientX - rect.left;
+    const pct = Math.max(0, Math.min(100, (x / rect.width) * 100));
+    setSliderValue(pct);
+  };
+
+  const handleSliderPointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
+    if (compareMode !== "slider") return;
+    event.currentTarget.setPointerCapture(event.pointerId);
+    updateSliderFromClientX(event.clientX);
+  };
+
+  const handleSliderPointerMove = (event: React.PointerEvent<HTMLDivElement>) => {
+    if (compareMode !== "slider") return;
+    if (event.buttons !== 1) return;
+    updateSliderFromClientX(event.clientX);
+  };
+
+  const handleSliderKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
+    if (compareMode !== "slider") return;
+    const step = event.shiftKey ? 10 : 2;
+    if (event.key === "ArrowLeft" || event.key === "ArrowDown") {
+      event.preventDefault();
+      setSliderValue((v) => Math.max(0, v - step));
+    } else if (event.key === "ArrowRight" || event.key === "ArrowUp") {
+      event.preventDefault();
+      setSliderValue((v) => Math.min(100, v + step));
+    } else if (event.key === "Home") {
+      event.preventDefault();
+      setSliderValue(0);
+    } else if (event.key === "End") {
+      event.preventDefault();
+      setSliderValue(100);
+    }
+  };
+
   const dragState = useRef<{
     startX: number;
     startY: number;
@@ -161,7 +204,20 @@ export default function CompareView({
         <button className="icon-button" type="button" onClick={onBack}>
           ←
         </button>
-        <div className="segmented">
+        <button className="icon-button" type="button" onClick={onOpenSessions}>
+          ⋯
+        </button>
+      </header>
+
+      <section className="compare-stage">
+        <div
+          className="segmented"
+          style={{
+            marginTop: 20,
+            marginRight: 0,
+            fontFamily: '"Avenir Next"'
+          }}
+        >
           <button
             type="button"
             className={compareMode === "overlay" ? "active" : ""}
@@ -177,12 +233,6 @@ export default function CompareView({
             Slider
           </button>
         </div>
-        <button className="icon-button" type="button" onClick={onOpenSessions}>
-          ⋯
-        </button>
-      </header>
-
-      <section className="compare-stage">
         {!referenceUrl && !drawingUrl ? (
           <div className="empty-state">
             <p>Add a reference and drawing photo to start comparing.</p>
@@ -224,7 +274,19 @@ export default function CompareView({
                 )}
               </div>
             ) : (
-              <div className="slider-stack">
+              <div
+                ref={sliderTrackRef}
+                className="slider-stack"
+                role="slider"
+                aria-valuemin={0}
+                aria-valuemax={100}
+                aria-valuenow={Math.round(sliderValue)}
+                aria-label="Reveal reference or drawing"
+                tabIndex={0}
+                onPointerDown={handleSliderPointerDown}
+                onPointerMove={handleSliderPointerMove}
+                onKeyDown={handleSliderKeyDown}
+              >
                 {referenceUrl && (
                   <img
                     className="base-image"
@@ -243,6 +305,7 @@ export default function CompareView({
                       className="base-image"
                       src={drawingUrl}
                       alt="Drawing"
+                      style={{ opacity: overlaySettings.opacity }}
                     />
                   </div>
                 )}
@@ -256,114 +319,19 @@ export default function CompareView({
         )}
       </section>
 
-      <section className="compare-controls">
-        {compareMode === "slider" && (
-          <label className="control-row">
-            <span>Reveal</span>
-            <input
-              type="range"
-              min={0}
-              max={100}
-              value={sliderValue}
-              onChange={(event) =>
-                setSliderValue(Number(event.target.value))
-              }
-            />
-          </label>
-        )}
-        {compareMode === "overlay" && (
-          <>
-            <label className="control-row">
-              <span>Opacity</span>
-              <input
-                type="range"
-                min={0}
-                max={1}
-                step={0.01}
-                value={overlaySettings.opacity}
-                onChange={(event) =>
-                  onChangeOverlay({
-                    ...overlaySettings,
-                    opacity: Number(event.target.value)
-                  })
-                }
-              />
-            </label>
-            <label className="control-row">
-              <span>Scale</span>
-              <input
-                type="range"
-                min={0.5}
-                max={2}
-                step={0.01}
-                value={overlaySettings.scale}
-                onChange={(event) =>
-                  onChangeOverlay({
-                    ...overlaySettings,
-                    scale: Number(event.target.value)
-                  })
-                }
-              />
-            </label>
-            <div className="control-row">
-              <span>Rotate</span>
-              <div className="button-group">
-                <button
-                  className="mini-button"
-                  onClick={() =>
-                    onChangeOverlay({
-                      ...overlaySettings,
-                      rotation: overlaySettings.rotation - 5
-                    })
-                  }
-                >
-                  -5°
-                </button>
-                <button
-                  className="mini-button"
-                  onClick={() =>
-                    onChangeOverlay({
-                      ...overlaySettings,
-                      rotation: overlaySettings.rotation + 5
-                    })
-                  }
-                >
-                  +5°
-                </button>
-              </div>
-            </div>
-            <button className="ghost-button" onClick={onResetAlignment}>
-              Reset alignment
-            </button>
-          </>
-        )}
-
-        <div className="divider" />
-
-        <div className="toggle-row">
-          <button
-            className={guides.grid ? "toggle active" : "toggle"}
-            onClick={() => onChangeGuides({ ...guides, grid: !guides.grid })}
-          >
-            Grid
-          </button>
-          <button
-            className={guides.centerline ? "toggle active" : "toggle"}
-            onClick={() =>
-              onChangeGuides({ ...guides, centerline: !guides.centerline })
-            }
-          >
-            Centerline
-          </button>
-        </div>
-      </section>
-
       <footer className="compare-footer">
         <button className="secondary-button" onClick={onAddReference}>
           Update reference
         </button>
         <button className="secondary-button" onClick={onAddDrawing}>
-          Update drawing
+          Add drawing
+        </button>
+        <button
+          type="button"
+          className="primary-button"
+          onClick={() => onEvaluate?.()}
+        >
+          Evaluate
         </button>
       </footer>
     </div>

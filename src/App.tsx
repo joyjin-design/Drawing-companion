@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import CompareView from "./components/CompareView";
+import EvaluateView from "./components/EvaluateView";
 import SessionList from "./components/SessionList";
 import UploadPanel from "./components/UploadPanel";
 import {
@@ -15,7 +16,7 @@ import type { CompareMode, Guides, OverlaySettings, Session } from "./types";
 import { createId } from "./utils";
 
 const defaultOverlay: OverlaySettings = {
-  opacity: 0.6,
+  opacity: 0.7,
   scale: 1,
   rotation: 0,
   translateX: 0,
@@ -34,7 +35,7 @@ type ImageState = {
   height: number;
 };
 
-type View = "home" | "compare" | "sessions";
+type View = "home" | "compare" | "evaluate" | "sessions";
 
 export default function App() {
   const [view, setView] = useState<View>("home");
@@ -274,6 +275,17 @@ export default function App() {
               onOpenSessions={() => setView("sessions")}
               onAddReference={() => referenceInputRef.current?.click()}
               onAddDrawing={() => drawingInputRef.current?.click()}
+              onEvaluate={() => setView("evaluate")}
+            />
+          )}
+
+          {view === "evaluate" && (
+            <EvaluateView
+              referenceUrl={reference?.url ?? null}
+              drawingUrl={drawing?.url ?? null}
+              overlaySettings={overlaySettings}
+              onBack={() => setView("compare")}
+              onSaveToGallery={() => setView("sessions")}
             />
           )}
 
