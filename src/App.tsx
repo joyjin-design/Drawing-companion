@@ -12,8 +12,57 @@ import {
   saveImage,
   saveSession
 } from "./db";
+import {
+  isSupabaseConfigured,
+  pullSessions,
+  pushSession,
+  supabase
+} from "./supabase";
 import type { CompareMode, Guides, OverlaySettings, Session } from "./types";
 import { createId } from "./utils";
+import type { User } from "@supabase/supabase-js";
+
+const MAX_IMAGE_DIM = 1600;
+const PREVIEW_MAX_DIM = 96;
+const JPEG_QUALITY = 0.85;
+
+function createPreviewDataUrl(bitmap: ImageBitmap): string {
+  const w = bitmap.width;
+  const h = bitmap.height;
+  const scale = PREVIEW_MAX_DIM / Math.max(w, h);
+  const width = Math.max(1, Math.round(w * scale));
+  const height = Math.max(1, Math.round(h * scale));
+  const canvas = document.createElement("canvas");
+  canvas.width = width;
+  canvas.height = height;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) return "";
+  ctx.drawImage(bitmap, 0, 0, width, height);
+  return canvas.toDataURL("image/jpeg", 0.65);
+}
+
+function resizeImageToBlob(bitmap: ImageBitmap): Promise<{ blob: Blob; width: number; height: number }> {
+  const { width: w, height: h } = bitmap;
+  const scale = MAX_IMAGE_DIM / Math.max(w, h);
+  const width = Math.round(w * scale);
+  const height = Math.round(h * scale);
+  const canvas = document.createElement("canvas");
+  canvas.width = width;
+  canvas.height = height;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) return Promise.reject(new Error("No canvas context"));
+  ctx.drawImage(bitmap, 0, 0, width, height);
+  return new Promise((resolve, reject) => {
+    canvas.toBlob(
+      (blob) => {
+        if (blob) resolve({ blob, width, height });
+        else reject(new Error("Failed to create blob"));
+      },
+      "image/jpeg",
+      JPEG_QUALITY
+    );
+  });
+}
 
 const defaultOverlay: OverlaySettings = {
   opacity: 0.7,
@@ -31,6 +80,7 @@ const defaultGuides: Guides = {
 type ImageState = {
   id: string;
   url: string;
+  previewUrl?: string;
   width: number;
   height: number;
 };
@@ -53,6 +103,12 @@ export default function App() {
   const [currentSessionCreatedAt, setCurrentSessionCreatedAt] = useState(
     Date.now()
   );
+  const [referenceSource, setReferenceSource] = useState<
+    "outline" | "shading" | null
+  >(null);
+  const [authUser, setAuthUser] = useState<User | null>(null);
+  const [authLoading, setAuthLoading] = useState(true);
+  const [syncError, setSyncError] = useState<string | null>(null);
 
   const referenceInputRef = useRef<HTMLInputElement>(null);
   const drawingInputRef = useRef<HTMLInputElement>(null);
@@ -65,6 +121,23 @@ export default function App() {
   useEffect(() => {
     refreshSessions();
   }, [refreshSessions]);
+
+  useEffect(() => {
+    if (!supabase) {
+      setAuthLoading(false);
+      return;
+    }
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setAuthUser(session?.user ?? null);
+      setAuthLoading(false);
+    });
+    const {
+      data: { subscription }
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setAuthUser(session?.user ?? null);
+    });
+    return () => subscription.unsubscribe();
+  }, []);
 
   const revokeUrl = (url?: string | null) => {
     if (url) URL.revokeObjectURL(url);
@@ -79,24 +152,44 @@ export default function App() {
       revokeUrl(prev?.url);
       return null;
     });
+    setReferenceSource(null);
   };
 
   const processFile = useCallback(
     async (file: File, type: "reference" | "drawing") => {
       const bitmap = await createImageBitmap(file);
+      const previewUrl = createPreviewDataUrl(bitmap);
       const id = createId(type);
+      const w = bitmap.width;
+      const h = bitmap.height;
+      const needsResize = Math.max(w, h) > MAX_IMAGE_DIM;
+      let blob: Blob;
+      let width: number;
+      let height: number;
+      if (needsResize) {
+        const resized = await resizeImageToBlob(bitmap);
+        bitmap.close();
+        blob = resized.blob;
+        width = resized.width;
+        height = resized.height;
+      } else {
+        blob = file;
+        width = w;
+        height = h;
+        bitmap.close();
+      }
       const record = {
         id,
-        blob: file,
-        width: bitmap.width,
-        height: bitmap.height,
+        blob,
+        width,
+        height,
         type
       };
-      bitmap.close();
       await saveImage(record);
       return {
         id,
-        url: URL.createObjectURL(file),
+        url: URL.createObjectURL(blob),
+        previewUrl,
         width: record.width,
         height: record.height
       } satisfies ImageState;
@@ -105,12 +198,13 @@ export default function App() {
   );
 
   const handleReference = useCallback(
-    async (file: File) => {
+    async (file: File, source?: "outline" | "shading") => {
       const image = await processFile(file, "reference");
       setReference((prev) => {
         revokeUrl(prev?.url);
         return image;
       });
+      if (source) setReferenceSource(source);
       setView("compare");
     },
     [processFile]
@@ -154,10 +248,26 @@ export default function App() {
       };
       await saveSession(session);
       await refreshSessions();
+      if (authUser?.id) {
+        const [refRecord, drawRecord] = await Promise.all([
+          getImage(reference.id),
+          getImage(drawing.id)
+        ]);
+        if (refRecord && drawRecord) {
+          const { error } = await pushSession(
+            authUser.id,
+            session,
+            refRecord.blob,
+            drawRecord.blob
+          );
+          if (error) setSyncError(error.message);
+        }
+      }
     }, 200);
 
     return () => window.clearTimeout(timeout);
   }, [
+    authUser?.id,
     compareMode,
     currentSessionCreatedAt,
     currentSessionId,
@@ -170,6 +280,47 @@ export default function App() {
   ]);
 
   const resetAlignment = () => setOverlaySettings(defaultOverlay);
+
+  const handleCloudSignIn = useCallback(
+    async (email: string, password: string) => {
+      setSyncError(null);
+      if (!supabase) return;
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password
+      });
+      if (error) setSyncError(error.message);
+      else if (data.user?.id) {
+        const { error: pullErr } = await pullSessions(data.user.id);
+        if (pullErr) setSyncError(pullErr.message);
+        await refreshSessions();
+      }
+    },
+    [refreshSessions]
+  );
+
+  const handleCloudSignUp = useCallback(
+    async (email: string, password: string) => {
+      setSyncError(null);
+      if (!supabase) return;
+      const { error } = await supabase.auth.signUp({ email, password });
+      if (error) setSyncError(error.message);
+    },
+    []
+  );
+
+  const handleCloudSignOut = useCallback(async () => {
+    await supabase?.auth.signOut();
+    setSyncError(null);
+  }, []);
+
+  const handleCloudSync = useCallback(async () => {
+    setSyncError(null);
+    if (!authUser?.id || !supabase) return;
+    const { error } = await pullSessions(authUser.id);
+    if (error) setSyncError(error.message);
+    else await refreshSessions();
+  }, [authUser?.id, refreshSessions]);
 
   const openSession = useCallback(async (id: string) => {
     const session = await getSession(id);
@@ -206,6 +357,7 @@ export default function App() {
     setCurrentSessionId(session.id);
     setCurrentSessionName(session.name);
     setCurrentSessionCreatedAt(session.createdAt);
+    setReferenceSource(null);
     setView("compare");
   }, []);
 
@@ -239,8 +391,23 @@ export default function App() {
         setCurrentSessionName(name);
       }
       await refreshSessions();
+      if (authUser?.id) {
+        const [refRecord, drawRecord] = await Promise.all([
+          getImage(session.referenceImageId),
+          getImage(session.drawingImageId)
+        ]);
+        if (refRecord && drawRecord) {
+          const { error } = await pushSession(
+            authUser.id,
+            session,
+            refRecord.blob,
+            drawRecord.blob
+          );
+          if (error) setSyncError(error.message);
+        }
+      }
     },
-    [currentSessionId, refreshSessions]
+    [authUser?.id, currentSessionId, refreshSessions]
   );
 
   const compareReady = useMemo(() => reference && drawing, [reference, drawing]);
@@ -253,7 +420,9 @@ export default function App() {
           {view === "home" && (
             <UploadPanel
               referenceUrl={reference?.url}
+              referencePreviewUrl={reference?.previewUrl}
               drawingUrl={drawing?.url}
+              drawingPreviewUrl={drawing?.previewUrl}
               onReferenceSelected={handleReference}
               onDrawingSelected={handleDrawing}
               onOpenSessions={() => setView("sessions")}
@@ -263,7 +432,9 @@ export default function App() {
           {view === "compare" && (
             <CompareView
               referenceUrl={reference?.url}
+              referencePreviewUrl={reference?.previewUrl}
               drawingUrl={drawing?.url}
+              drawingPreviewUrl={drawing?.previewUrl}
               compareMode={compareMode}
               overlaySettings={overlaySettings}
               guides={guides}
@@ -282,8 +453,11 @@ export default function App() {
           {view === "evaluate" && (
             <EvaluateView
               referenceUrl={reference?.url ?? null}
+              referencePreviewUrl={reference?.previewUrl ?? null}
               drawingUrl={drawing?.url ?? null}
+              drawingPreviewUrl={drawing?.previewUrl ?? null}
               overlaySettings={overlaySettings}
+              referenceIsOutline={referenceSource === "outline"}
               onBack={() => setView("compare")}
               onSaveToGallery={() => setView("sessions")}
             />
@@ -296,6 +470,14 @@ export default function App() {
               onDelete={handleDeleteSession}
               onRename={handleRenameSession}
               onBack={() => setView(compareReady ? "compare" : "home")}
+              cloudEnabled={isSupabaseConfigured()}
+              authUser={authUser}
+              authLoading={authLoading}
+              syncError={syncError}
+              onCloudSignIn={handleCloudSignIn}
+              onCloudSignUp={handleCloudSignUp}
+              onCloudSignOut={handleCloudSignOut}
+              onCloudSync={handleCloudSync}
             />
           )}
 

@@ -1,11 +1,16 @@
 import { useEffect, useMemo, useState } from "react";
 import { evaluateDrawing } from "../gemini";
 import type { OverlaySettings } from "../types";
+import ProgressiveImage from "./ProgressiveImage";
 
 export type EvaluateViewProps = {
   referenceUrl: string | null;
+  referencePreviewUrl?: string | null;
   drawingUrl: string | null;
+  drawingPreviewUrl?: string | null;
   overlaySettings: OverlaySettings;
+  /** When true (reference from Outline mode), hide feedback about shading/shadow. */
+  referenceIsOutline?: boolean;
   onBack: () => void;
   onSaveToGallery?: () => void;
 };
@@ -77,10 +82,19 @@ const HIGHLIGHT_GRADIENTS: Record<string, string> = {
   "Detail Work": "linear-gradient(135deg, #14b8a6, #22c55e)"
 };
 
+function isShadingOrShadowFeedback(h: EvaluateHighlight): boolean {
+  const cat = h.category.toLowerCase();
+  const fb = h.feedback.toLowerCase();
+  return cat.includes("shad") || fb.includes("shad");
+}
+
 export default function EvaluateView({
   referenceUrl,
+  referencePreviewUrl,
   drawingUrl,
+  drawingPreviewUrl,
   overlaySettings,
+  referenceIsOutline = false,
   onBack,
   onSaveToGallery
 }: EvaluateViewProps) {
@@ -142,9 +156,14 @@ export default function EvaluateView({
     growthPercent: 75,
     highlights: [{ category: "Feedback", feedback: rawText }]
   } : null);
-  const highlights = display?.highlights.length
+  const rawHighlights = display?.highlights.length
     ? display.highlights
     : DEFAULT_HIGHLIGHTS;
+  const highlights =
+    referenceIsOutline
+      ? rawHighlights.filter((h) => !isShadingOrShadowFeedback(h))
+      : rawHighlights;
+  const showHighlightsSection = highlights.length > 0;
   const growthPercent = display?.growthPercent ?? 75;
 
   return (
@@ -162,17 +181,23 @@ export default function EvaluateView({
       <section className="evaluate-content">
         <div className="evaluate-preview">
           {referenceUrl && (
-            <img
-              className="evaluate-preview-base"
+            <ProgressiveImage
               src={referenceUrl}
+              previewUrl={referencePreviewUrl}
               alt="Reference"
+              className="evaluate-preview-base"
+              decoding="async"
+              fetchPriority="high"
             />
           )}
           {drawingUrl && (
-            <img
-              className="evaluate-preview-drawing"
+            <ProgressiveImage
               src={drawingUrl}
+              previewUrl={drawingPreviewUrl}
               alt="Drawing"
+              className="evaluate-preview-drawing"
+              decoding="async"
+              fetchPriority="high"
               style={{
                 opacity: overlaySettings.opacity,
                 transform: drawingTransform
@@ -228,28 +253,30 @@ export default function EvaluateView({
               </div>
             </div>
 
-            <div className="evaluate-highlights">
-              <h4 className="evaluate-highlights-title">Feedback Highlights</h4>
-              <div className="evaluate-highlights-list">
-                {highlights.map((h, i) => (
-                  <div key={i} className="evaluate-highlight-card">
-                    <div
-                      className="evaluate-highlight-icon"
-                      style={{
-                        background: HIGHLIGHT_GRADIENTS[h.category] ?? "var(--primary)"
-                      }}
-                      aria-hidden
-                    >
-                      {HIGHLIGHT_ICONS[h.category] ?? "•"}
+            {showHighlightsSection && (
+              <div className="evaluate-highlights">
+                <h4 className="evaluate-highlights-title">Feedback Highlights</h4>
+                <div className="evaluate-highlights-list">
+                  {highlights.map((h, i) => (
+                    <div key={i} className="evaluate-highlight-card">
+                      <div
+                        className="evaluate-highlight-icon"
+                        style={{
+                          background: HIGHLIGHT_GRADIENTS[h.category] ?? "var(--primary)"
+                        }}
+                        aria-hidden
+                      >
+                        {HIGHLIGHT_ICONS[h.category] ?? "•"}
+                      </div>
+                      <div className="evaluate-highlight-body">
+                        <h5 className="evaluate-highlight-category">{h.category}</h5>
+                        <p className="evaluate-highlight-feedback">{h.feedback}</p>
+                      </div>
                     </div>
-                    <div className="evaluate-highlight-body">
-                      <h5 className="evaluate-highlight-category">{h.category}</h5>
-                      <p className="evaluate-highlight-feedback">{h.feedback}</p>
-                    </div>
-                  </div>
-                ))}
+                  ))}
+                </div>
               </div>
-            </div>
+            )}
 
             <div className="evaluate-actions">
               <button

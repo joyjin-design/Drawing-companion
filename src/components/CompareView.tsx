@@ -1,10 +1,13 @@
 import { useMemo, useRef, useState } from "react";
 import type React from "react";
+import ProgressiveImage from "./ProgressiveImage";
 import type { CompareMode, Guides, OverlaySettings } from "../types";
 
 export type CompareViewProps = {
   referenceUrl?: string | null;
+  referencePreviewUrl?: string | null;
   drawingUrl?: string | null;
+  drawingPreviewUrl?: string | null;
   compareMode: CompareMode;
   overlaySettings: OverlaySettings;
   guides: Guides;
@@ -21,7 +24,9 @@ export type CompareViewProps = {
 
 export default function CompareView({
   referenceUrl,
+  referencePreviewUrl,
   drawingUrl,
+  drawingPreviewUrl,
   compareMode,
   overlaySettings,
   guides,
@@ -210,14 +215,7 @@ export default function CompareView({
       </header>
 
       <section className="compare-stage">
-        <div
-          className="segmented"
-          style={{
-            marginTop: 20,
-            marginRight: 0,
-            fontFamily: '"Avenir Next"'
-          }}
-        >
+        <div className="segmented">
           <button
             type="button"
             className={compareMode === "overlay" ? "active" : ""}
@@ -251,17 +249,23 @@ export default function CompareView({
             {compareMode === "overlay" ? (
               <div className="overlay-stack">
                 {referenceUrl && (
-                  <img
-                    className="base-image"
+                  <ProgressiveImage
                     src={referenceUrl}
+                    previewUrl={referencePreviewUrl}
                     alt="Reference"
+                    className="base-image"
+                    decoding="async"
+                    fetchPriority="high"
                   />
                 )}
                 {drawingUrl && (
-                  <img
-                    className="drawing-image"
+                  <ProgressiveImage
                     src={drawingUrl}
+                    previewUrl={drawingPreviewUrl}
                     alt="Drawing"
+                    className="drawing-image"
+                    decoding="async"
+                    fetchPriority="high"
                     style={{
                       opacity: overlaySettings.opacity,
                       transform: drawingTransform
@@ -288,10 +292,13 @@ export default function CompareView({
                 onKeyDown={handleSliderKeyDown}
               >
                 {referenceUrl && (
-                  <img
-                    className="base-image"
+                  <ProgressiveImage
                     src={referenceUrl}
+                    previewUrl={referencePreviewUrl}
                     alt="Reference"
+                    className="base-image"
+                    decoding="async"
+                    fetchPriority="high"
                   />
                 )}
                 {drawingUrl && (
@@ -301,11 +308,14 @@ export default function CompareView({
                       clipPath: `inset(0 ${100 - sliderValue}% 0 0)`
                     }}
                   >
-                    <img
-                      className="base-image"
+                    <ProgressiveImage
                       src={drawingUrl}
+                      previewUrl={drawingPreviewUrl}
                       alt="Drawing"
+                      className="base-image"
                       style={{ opacity: overlaySettings.opacity }}
+                      decoding="async"
+                      fetchPriority="high"
                     />
                   </div>
                 )}

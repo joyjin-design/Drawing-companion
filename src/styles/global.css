@@ -303,12 +303,18 @@ button {
 }
 
 .compare-stage {
-  font-family: "Avenir Next";
+  font-family: "Avenir Next", sans-serif;
   flex: 1;
   display: flex;
   flex-direction: column;
   gap: 8px;
   justify-content: center;
+}
+
+.compare-stage .segmented {
+  margin-top: 20px;
+  margin-right: 0;
+  font-family: "Avenir Next", sans-serif;
 }
 
 .canvas-frame {
@@ -333,6 +339,47 @@ button {
 .slider-stack {
   cursor: ew-resize;
   touch-action: none;
+}
+
+/* Progressive image: show rough preview first, fade in full image when loaded */
+.progressive-image {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+.progressive-image-preview,
+.progressive-image-full {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.progressive-image-full {
+  opacity: 0;
+  transition: opacity 0.2s ease-out;
+}
+
+.progressive-image-full.loaded {
+  opacity: 1;
+}
+
+.overlay-stack .progressive-image,
+.slider-stack .progressive-image {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  max-width: 100%;
+  max-height: 100%;
+  transform: translate(-50%, -50%);
+}
+
+.floating-card .progressive-image-preview,
+.floating-card .progressive-image-full {
+  object-fit: cover;
 }
 
 .base-image,
@@ -408,6 +455,16 @@ button {
   font-size: 12px;
 }
 
+.mini-button.primary {
+  background: var(--accent, #6f49ff);
+  color: #fff;
+}
+
+.mini-button.ghost {
+  background: transparent;
+  box-shadow: none;
+}
+
 .mini-button.danger {
   background: #ffe7e7;
   color: #a22828;
@@ -455,6 +512,17 @@ button {
   border-radius: 16px;
   overflow: hidden;
   flex-shrink: 0;
+}
+
+.evaluate-preview .progressive-image {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  max-width: 100%;
+  max-height: 100%;
+  width: 100%;
+  height: 100%;
+  transform: translate(-50%, -50%);
 }
 
 .evaluate-preview-base,
@@ -697,6 +765,60 @@ button {
   font-size: 18px;
 }
 
+.cloud-section {
+  padding: 14px 0;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+  margin-bottom: 14px;
+}
+
+.cloud-status {
+  margin: 0 0 10px;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.cloud-status strong {
+  color: inherit;
+  font-weight: 600;
+}
+
+.cloud-signed-in {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 14px;
+}
+
+.cloud-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.cloud-sign-in .cloud-form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-width: 280px;
+}
+
+.cloud-input {
+  padding: 10px 12px;
+  border: 1px solid rgba(0, 0, 0, 0.15);
+  border-radius: 12px;
+  font-size: 14px;
+}
+
+.cloud-form-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.cloud-error {
+  margin: 8px 0 0;
+  font-size: 12px;
+  color: #a22828;
+}
+
 .session-list {
   display: grid;
   gap: 14px;
@@ -902,7 +1024,7 @@ button {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 12px 20px;
+  padding: 12px 8px;
   background: rgba(0, 0, 0, 0.25);
   color: rgba(255, 255, 255, 0.8);
   font-size: 13px;
@@ -913,6 +1035,7 @@ button {
 }
 .capture-reference-tip-text {
   flex: 1;
+  font-size: 12px;
   font-family: "Avenir Next";
 }
 

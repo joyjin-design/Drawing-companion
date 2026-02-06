@@ -1,17 +1,22 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { getOutlineFromImage, getShadingFromImage } from "../gemini";
+import ProgressiveImage from "./ProgressiveImage";
 
 export type UploadPanelProps = {
   referenceUrl?: string | null;
+  referencePreviewUrl?: string | null;
   drawingUrl?: string | null;
-  onReferenceSelected: (file: File) => void;
+  drawingPreviewUrl?: string | null;
+  onReferenceSelected: (file: File, source?: "outline" | "shading") => void;
   onDrawingSelected: (file: File) => void;
   onOpenSessions: () => void;
 };
 
 export default function UploadPanel({
   referenceUrl,
+  referencePreviewUrl,
   drawingUrl,
+  drawingPreviewUrl,
   onReferenceSelected,
   onDrawingSelected,
   onOpenSessions
@@ -212,7 +217,7 @@ export default function UploadPanel({
         .then((blob) => {
           const file = new File([blob], "reference-outline.png", { type: "image/png" });
           stopCamera();
-          onReferenceSelected(file);
+          onReferenceSelected(file, "outline");
         })
         .catch(() => {
           usePhotoFallback();
@@ -227,7 +232,7 @@ export default function UploadPanel({
         .then((blob) => {
           const file = new File([blob], "reference-shading.png", { type: "image/png" });
           stopCamera();
-          onReferenceSelected(file);
+          onReferenceSelected(file, "shading");
         })
         .catch(() => {
           usePhotoFallback();
@@ -302,6 +307,7 @@ export default function UploadPanel({
                   alt=""
                   className="capture-reference-preview capture-reference-generating-preview"
                   aria-hidden
+                  decoding="async"
                 />
                 <div className="capture-reference-generating-label">Generating…</div>
               </>
@@ -311,6 +317,7 @@ export default function UploadPanel({
                 src={outlineDataUrl}
                 alt="Outline reference"
                 className="capture-reference-preview capture-reference-outline-preview"
+                decoding="async"
               />
             )}
             {captureMode === "shading" && shadingDataUrl && (
@@ -318,6 +325,7 @@ export default function UploadPanel({
                 src={shadingDataUrl}
                 alt="Outline and shading reference"
                 className="capture-reference-preview capture-reference-outline-preview"
+                decoding="async"
               />
             )}
             <div className="capture-reference-grid" aria-hidden />
@@ -448,16 +456,26 @@ export default function UploadPanel({
 
         <div className="floating-card top-card">
           {referenceUrl ? (
-            <img src={referenceUrl} alt="Reference preview" />
+            <ProgressiveImage
+              src={referenceUrl}
+              previewUrl={referencePreviewUrl}
+              alt="Reference preview"
+              decoding="async"
+            />
           ) : (
-            <img src="/reference-placeholder.png" alt="Reference" />
+            <img src="/reference-placeholder.png" alt="Reference" decoding="async" />
           )}
         </div>
         <div className="floating-card bottom-card">
           {drawingUrl ? (
-            <img src={drawingUrl} alt="Drawing preview" />
+            <ProgressiveImage
+              src={drawingUrl}
+              previewUrl={drawingPreviewUrl}
+              alt="Drawing preview"
+              decoding="async"
+            />
           ) : (
-            <img src="/drawing-placeholder.png" alt="Drawing" />
+            <img src="/drawing-placeholder.png" alt="Drawing" decoding="async" />
           )}
         </div>
       </section>
