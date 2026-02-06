@@ -2,7 +2,8 @@
 /// <reference types="vite-plugin-pwa/client" />
 
 interface ImportMetaEnv {
-  readonly VITE_GEMINI_API_KEY?: string;
+  /** Deployed app URL for API calls in local dev (e.g. https://your-app.vercel.app). Leave unset in production. */
+  readonly VITE_API_ORIGIN?: string;
   readonly VITE_SUPABASE_URL?: string;
   readonly VITE_SUPABASE_ANON_KEY?: string;
 }

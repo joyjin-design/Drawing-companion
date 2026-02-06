@@ -17,6 +17,7 @@
   "devDependencies": {
     "@types/react": "^18.3.3",
     "@types/react-dom": "^18.3.0",
+    "@vercel/node": "^5.5.32",
     "@vitejs/plugin-react": "^5.0.0",
     "terser": "^5.31.6",
     "typescript": "^5.5.4",
