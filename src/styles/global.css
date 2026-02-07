@@ -1,8 +1,8 @@
-@import url("https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700&display=swap");
 
 :root {
   color-scheme: light;
-  font-family: "Poppins", "Avenir Next", "Segoe UI", sans-serif;
+  font-family: "Nunito", "Avenir Next", "Segoe UI", sans-serif;
   --ink: #1c1f36;
   --muted: #6c7390;
   --primary: #6f49ff;
@@ -208,7 +208,7 @@ button {
 }
 
 .home-copy {
-  margin-top: 40px;
+  margin-top: 48px;
   text-align: center;
   padding: 0 10px;
 }
@@ -222,7 +222,7 @@ button {
   font-size: 14px;
   color: var(--muted);
   line-height: 1.5;
-  margin: 0 0 32px;
+  margin: 0 0 48px;
 }
 
 .home-actions {
@@ -263,11 +263,19 @@ button {
   transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
-.primary-button:hover,
-.secondary-button:hover,
-.ghost-button:hover {
+.primary-button:hover:not(:disabled),
+.secondary-button:hover:not(:disabled),
+.ghost-button:hover:not(:disabled) {
   transform: translateY(-2px);
   box-shadow: 1px 14px 30px 0px rgba(74, 91, 140, 0.2);
+}
+
+.primary-button:disabled,
+.secondary-button:disabled,
+.ghost-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
 }
 
 .divider {
@@ -303,7 +311,7 @@ button {
 }
 
 .compare-stage {
-  font-family: "Avenir Next", sans-serif;
+  font-family: "Nunito", sans-serif;
   flex: 1;
   display: flex;
   flex-direction: column;
@@ -314,7 +322,7 @@ button {
 .compare-stage .segmented {
   margin-top: 20px;
   margin-right: 0;
-  font-family: "Avenir Next", sans-serif;
+  font-family: "Nunito", sans-serif;
 }
 
 .canvas-frame {
@@ -336,9 +344,30 @@ button {
   position: relative;
 }
 
+.compare-screen .canvas-frame .overlay-stack {
+  position: absolute;
+  inset: 0;
+}
+
 .slider-stack {
   cursor: ew-resize;
   touch-action: none;
+}
+
+.slider-stack .progressive-image {
+  width: 100%;
+  height: 100%;
+  top: 0;
+  left: 0;
+  transform: none;
+  max-width: none;
+  max-height: none;
+}
+
+.slider-stack .progressive-image-preview,
+.slider-stack .progressive-image-full {
+  object-fit: cover;
+  object-position: center;
 }
 
 /* Progressive image: show rough preview first, fade in full image when loaded */
@@ -375,6 +404,17 @@ button {
   max-width: 100%;
   max-height: 100%;
   transform: translate(-50%, -50%);
+}
+
+/* Compare screen: center image in overlay-stack */
+.compare-screen .overlay-stack .progressive-image {
+  width: 100%;
+  height: 100%;
+}
+
+.compare-screen .overlay-stack .progressive-image-full {
+  object-fit: cover;
+  object-position: center;
 }
 
 .floating-card .progressive-image-preview,
@@ -556,6 +596,107 @@ button {
   margin: 0;
   color: var(--muted);
   font-size: 15px;
+}
+
+/* Skeleton loading state for evaluation */
+.evaluate-loading-skeleton {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.evaluate-skeleton.achievement {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+.evaluate-skeleton-icon {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  background: linear-gradient(
+    90deg,
+    rgba(139, 92, 246, 0.15) 0%,
+    rgba(236, 72, 153, 0.25) 50%,
+    rgba(139, 92, 246, 0.15) 100%
+  );
+  background-size: 200% 100%;
+  animation: skeleton-shimmer 1.5s ease-in-out infinite;
+}
+
+.evaluate-skeleton-line {
+  height: 14px;
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.08);
+  animation: skeleton-pulse 1.2s ease-in-out infinite;
+}
+
+.evaluate-skeleton-line.short {
+  width: 140px;
+}
+
+.evaluate-skeleton-line.medium {
+  width: 200px;
+}
+
+.evaluate-skeleton-bar {
+  height: 28px;
+  border-radius: 14px;
+  background: rgba(0, 0, 0, 0.06);
+  animation: skeleton-pulse 1.2s ease-in-out infinite;
+}
+
+.evaluate-skeleton.highlights {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.evaluate-skeleton-card {
+  height: 56px;
+  border-radius: 12px;
+  background: rgba(0, 0, 0, 0.05);
+  animation: skeleton-pulse 1.2s ease-in-out infinite;
+}
+
+.evaluate-skeleton-card:nth-child(2) {
+  animation-delay: 0.1s;
+}
+
+.evaluate-skeleton-card:nth-child(3) {
+  animation-delay: 0.2s;
+}
+
+.evaluate-skeleton-card:nth-child(4) {
+  animation-delay: 0.3s;
+}
+
+@keyframes skeleton-shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+@keyframes skeleton-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.6;
+  }
+}
+
+.evaluate-loading-text {
+  margin: 12px 0 0;
+  font-size: 13px;
+  color: var(--muted);
+  text-align: center;
 }
 
 .evaluate-error {
@@ -886,7 +1027,7 @@ button {
   background: rgba(0, 0, 0, 0.3);
   color: #ffffff;
   flex-shrink: 0;
-  font-family: "Avenir Next";
+  font-family: "Nunito";
 }
 
 .capture-reference-back,
@@ -922,7 +1063,7 @@ button {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  font-family: "Avenir Next";
+  font-family: "Nunito";
 }
 
 .capture-reference-grid {
@@ -1017,7 +1158,7 @@ button {
   margin: 0;
   font-size: 14px;
   color: rgba(255, 255, 255, 0.7);
-  font-family: "Avenir Next";
+  font-family: "Nunito";
 }
 
 .capture-reference-tip {
@@ -1036,7 +1177,7 @@ button {
 .capture-reference-tip-text {
   flex: 1;
   font-size: 12px;
-  font-family: "Avenir Next";
+  font-family: "Nunito";
 }
 
 .capture-reference-controls {
@@ -1047,7 +1188,7 @@ button {
   align-items: center;
   gap: 20px;
   flex-shrink: 0;
-  font-family: "Avenir Next";
+  font-family: "Nunito";
 }
 
 .capture-reference-modes {
@@ -1132,23 +1273,55 @@ button {
 
 .capture-reference-generating-preview {
   object-fit: cover;
-  filter: blur(16px);
-  opacity: 0.85;
-  transform: scale(1.05);
+  opacity: 0.9;
 }
-.capture-reference-generating-label {
+
+.capture-reference-loading-overlay {
   position: absolute;
-  left: 0;
-  right: 0;
-  top: calc(72% + 8px);
+  inset: 0;
+  z-index: 2;
   display: flex;
   align-items: center;
   justify-content: center;
+  background: rgba(0, 0, 0, 0.35);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  pointer-events: none;
+}
+
+.capture-reference-loading-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+}
+
+.capture-reference-loading-text {
   font-size: 18px;
   font-weight: 600;
   color: rgba(255, 255, 255, 0.95);
   text-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
-  pointer-events: none;
+}
+
+.capture-reference-loading-overlay .capture-reference-spinner {
+  width: 28px;
+  height: 28px;
+  border-width: 3px;
+}
+
+.capture-reference-spinner {
+  width: 22px;
+  height: 22px;
+  border: 3px solid rgba(255, 255, 255, 0.3);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: capture-spin 0.8s linear infinite;
+}
+
+@keyframes capture-spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .capture-reference-outline-error {

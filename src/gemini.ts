@@ -5,6 +5,16 @@
 
 const API_BASE = import.meta.env.VITE_API_ORIGIN ?? "";
 
+async function parseJsonSafe<T>(res: Response): Promise<T | null> {
+  const text = await res.text();
+  if (!text.trim()) return null;
+  try {
+    return JSON.parse(text) as T;
+  } catch {
+    return null;
+  }
+}
+
 export type OutlineResult = { dataUrl: string } | { error: string };
 export type ShadingResult = { dataUrl: string } | { error: string };
 
@@ -15,10 +25,10 @@ export async function getOutlineFromImage(base64Jpeg: string): Promise<OutlineRe
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ base64: base64Jpeg })
     });
-    const data = (await res.json()) as { dataUrl?: string; error?: string };
-    if (!res.ok) return { error: data.error ?? `Request failed ${res.status}` };
-    if (data.dataUrl) return { dataUrl: data.dataUrl };
-    return { error: data.error ?? "No image in response." };
+    const data = await parseJsonSafe<{ dataUrl?: string; error?: string }>(res);
+    if (!res.ok) return { error: data?.error ?? `Request failed (${res.status}). Try again.` };
+    if (data?.dataUrl) return { dataUrl: data.dataUrl };
+    return { error: data?.error ?? "No image in response." };
   } catch (e) {
     const message = e instanceof Error ? e.message : String(e);
     return { error: message };
@@ -32,10 +42,10 @@ export async function getShadingFromImage(base64Jpeg: string): Promise<ShadingRe
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ base64: base64Jpeg })
     });
-    const data = (await res.json()) as { dataUrl?: string; error?: string };
-    if (!res.ok) return { error: data.error ?? `Request failed ${res.status}` };
-    if (data.dataUrl) return { dataUrl: data.dataUrl };
-    return { error: data.error ?? "No image in response." };
+    const data = await parseJsonSafe<{ dataUrl?: string; error?: string }>(res);
+    if (!res.ok) return { error: data?.error ?? `Request failed (${res.status}). Try again.` };
+    if (data?.dataUrl) return { dataUrl: data.dataUrl };
+    return { error: data?.error ?? "No image in response." };
   } catch (e) {
     const message = e instanceof Error ? e.message : String(e);
     return { error: message };
@@ -57,10 +67,10 @@ export async function evaluateDrawing(
         drawingBase64: drawingBase64Jpeg
       })
     });
-    const data = (await res.json()) as { text?: string; error?: string };
-    if (!res.ok) return { error: data.error ?? `Request failed ${res.status}` };
-    if (data.text) return { text: data.text };
-    return { error: data.error ?? "No evaluation in response." };
+    const data = await parseJsonSafe<{ text?: string; error?: string }>(res);
+    if (!res.ok) return { error: data?.error ?? `Request failed (${res.status}). Try again.` };
+    if (data?.text) return { text: data.text };
+    return { error: data?.error ?? "No evaluation in response." };
   } catch (e) {
     const message = e instanceof Error ? e.message : String(e);
     return { error: message };

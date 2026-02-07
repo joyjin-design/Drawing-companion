@@ -207,8 +207,23 @@ export default function EvaluateView({
         </div>
 
         {loading && (
-          <div className="evaluate-result">
-            <p className="evaluate-loading">Evaluating…</p>
+          <div className="evaluate-result evaluate-loading-skeleton">
+            <div className="evaluate-skeleton achievement">
+              <div className="evaluate-skeleton-icon" />
+              <div className="evaluate-skeleton-line short" />
+              <div className="evaluate-skeleton-line medium" />
+            </div>
+            <div className="evaluate-skeleton growth">
+              <div className="evaluate-skeleton-line medium" />
+              <div className="evaluate-skeleton-bar" />
+            </div>
+            <div className="evaluate-skeleton highlights">
+              <div className="evaluate-skeleton-line short" />
+              <div className="evaluate-skeleton-card" />
+              <div className="evaluate-skeleton-card" />
+              <div className="evaluate-skeleton-card" />
+            </div>
+            <p className="evaluate-loading-text" aria-live="polite">Evaluating your drawing…</p>
           </div>
         )}
 

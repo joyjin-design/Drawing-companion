@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { getOutlineFromImage, getShadingFromImage } from "../gemini";
+import { getOutlineDataUrl, getShadingDataUrl } from "../sketchClient";
 import ProgressiveImage from "./ProgressiveImage";
 
 export type UploadPanelProps = {
@@ -37,6 +38,8 @@ export default function UploadPanel({
   const [shadingLoading, setShadingLoading] = useState(false);
   const [shadingError, setShadingError] = useState<string | null>(null);
   const [generatingPreviewUrl, setGeneratingPreviewUrl] = useState<string | null>(null);
+  const [captureWithGeminiLoading, setCaptureWithGeminiLoading] = useState(false);
+  const [captureWithGeminiError, setCaptureWithGeminiError] = useState<string | null>(null);
 
   const stopCamera = useCallback(() => {
     streamRef.current?.getTracks().forEach((t) => t.stop());
@@ -48,6 +51,8 @@ export default function UploadPanel({
     setShadingDataUrl(null);
     setShadingError(null);
     setGeneratingPreviewUrl(null);
+    setCaptureWithGeminiError(null);
+    setCaptureWithGeminiLoading(false);
   }, []);
 
   const startCamera = useCallback(async () => {
@@ -164,83 +169,42 @@ export default function UploadPanel({
     setOutlineError(null);
     setOutlineLoading(true);
     try {
-      const previewUrl = await captureFrameAsDataUrl();
-      setGeneratingPreviewUrl(previewUrl);
-      const base64 = await captureFrameAsBase64Small();
-      const result = await getOutlineFromImage(base64);
-      if ("error" in result) {
-        setOutlineError(result.error);
-        setOutlineDataUrl(null);
-      } else {
-        setOutlineDataUrl(result.dataUrl);
-      }
+      const dataUrl = await captureFrameAsDataUrl();
+      setGeneratingPreviewUrl(dataUrl);
+      const outlineUrl = await getOutlineDataUrl(dataUrl);
+      setOutlineDataUrl(outlineUrl);
     } catch (e) {
-      setOutlineError(e instanceof Error ? e.message : "Failed to capture frame");
+      setOutlineError(e instanceof Error ? e.message : "Failed to create outline");
       setOutlineDataUrl(null);
     } finally {
       setOutlineLoading(false);
       setGeneratingPreviewUrl(null);
     }
-  }, [captureFrameAsBase64Small, captureFrameAsDataUrl]);
+  }, [captureFrameAsDataUrl]);
 
   const getShading = useCallback(async () => {
     setShadingError(null);
     setShadingLoading(true);
     try {
-      const previewUrl = await captureFrameAsDataUrl();
-      setGeneratingPreviewUrl(previewUrl);
-      const base64 = await captureFrameAsBase64Small();
-      const result = await getShadingFromImage(base64);
-      if ("error" in result) {
-        setShadingError(result.error);
-        setShadingDataUrl(null);
-      } else {
-        setShadingDataUrl(result.dataUrl);
-      }
+      const dataUrl = await captureFrameAsDataUrl();
+      setGeneratingPreviewUrl(dataUrl);
+      const shadingUrl = await getShadingDataUrl(dataUrl);
+      setShadingDataUrl(shadingUrl);
     } catch (e) {
-      setShadingError(e instanceof Error ? e.message : "Failed to capture frame");
+      setShadingError(e instanceof Error ? e.message : "Failed to create sketch");
       setShadingDataUrl(null);
     } finally {
       setShadingLoading(false);
       setGeneratingPreviewUrl(null);
     }
-  }, [captureFrameAsBase64Small, captureFrameAsDataUrl]);
+  }, [captureFrameAsDataUrl]);
 
-  const capturePhoto = useCallback(() => {
+  const capturePhoto = useCallback(async () => {
     const video = videoRef.current;
     if (!video || !streamRef.current) return;
+    if (captureWithGeminiLoading) return;
 
-    const useOutline = captureMode === "form" && outlineDataUrl;
-    if (useOutline) {
-      fetch(outlineDataUrl)
-        .then((r) => r.blob())
-        .then((blob) => {
-          const file = new File([blob], "reference-outline.png", { type: "image/png" });
-          stopCamera();
-          onReferenceSelected(file, "outline");
-        })
-        .catch(() => {
-          usePhotoFallback();
-        });
-      return;
-    }
-
-    const useShading = captureMode === "shading" && shadingDataUrl;
-    if (useShading) {
-      fetch(shadingDataUrl)
-        .then((r) => r.blob())
-        .then((blob) => {
-          const file = new File([blob], "reference-shading.png", { type: "image/png" });
-          stopCamera();
-          onReferenceSelected(file, "shading");
-        })
-        .catch(() => {
-          usePhotoFallback();
-        });
-      return;
-    }
-
-    function usePhotoFallback() {
+    const usePhotoFallback = () => {
       const canvas = document.createElement("canvas");
       canvas.width = video.videoWidth;
       canvas.height = video.videoHeight;
@@ -257,9 +221,65 @@ export default function UploadPanel({
         "image/jpeg",
         0.9
       );
+    };
+
+    const isForm = captureMode === "form";
+    const isShading = captureMode === "shading";
+    if (isForm || isShading) {
+      setCaptureWithGeminiError(null);
+      setCaptureWithGeminiLoading(true);
+      try {
+        const previewUrl = await captureFrameAsDataUrl();
+        setGeneratingPreviewUrl(previewUrl);
+        const base64 = await captureFrameAsBase64Small();
+        if (isForm) {
+          const result = await getOutlineFromImage(base64);
+          if ("error" in result) {
+            setCaptureWithGeminiError(result.error);
+            setCaptureWithGeminiLoading(false);
+            setGeneratingPreviewUrl(null);
+            return;
+          }
+          const res = await fetch(result.dataUrl);
+          const blob = await res.blob();
+          const file = new File([blob], "reference-outline.png", { type: blob.type || "image/png" });
+          stopCamera();
+          setCaptureWithGeminiLoading(false);
+          setGeneratingPreviewUrl(null);
+          onReferenceSelected(file, "outline");
+        } else {
+          const result = await getShadingFromImage(base64);
+          if ("error" in result) {
+            setCaptureWithGeminiError(result.error);
+            setCaptureWithGeminiLoading(false);
+            setGeneratingPreviewUrl(null);
+            return;
+          }
+          const res = await fetch(result.dataUrl);
+          const blob = await res.blob();
+          const file = new File([blob], "reference-shading.png", { type: blob.type || "image/png" });
+          stopCamera();
+          setCaptureWithGeminiLoading(false);
+          setGeneratingPreviewUrl(null);
+          onReferenceSelected(file, "shading");
+        }
+      } catch (e) {
+        setCaptureWithGeminiError(e instanceof Error ? e.message : "Failed to process");
+        setCaptureWithGeminiLoading(false);
+        setGeneratingPreviewUrl(null);
+      }
+      return;
     }
+
     usePhotoFallback();
-  }, [captureMode, outlineDataUrl, shadingDataUrl, onReferenceSelected, stopCamera]);
+  }, [
+    captureMode,
+    captureWithGeminiLoading,
+    captureFrameAsDataUrl,
+    captureFrameAsBase64Small,
+    onReferenceSelected,
+    stopCamera
+  ]);
 
   return (
     <div className="screen home-screen">
@@ -292,7 +312,8 @@ export default function UploadPanel({
                 (captureMode === "form" && outlineDataUrl) ||
                 (captureMode === "shading" && shadingDataUrl) ||
                 outlineLoading ||
-                shadingLoading
+                shadingLoading ||
+                captureWithGeminiLoading
                   ? { display: "none" }
                   : undefined
               }
@@ -300,7 +321,7 @@ export default function UploadPanel({
               muted
               autoPlay
             />
-            {(outlineLoading || shadingLoading) && generatingPreviewUrl && (
+            {(outlineLoading || shadingLoading || captureWithGeminiLoading) && generatingPreviewUrl && (
               <>
                 <img
                   src={generatingPreviewUrl}
@@ -309,7 +330,18 @@ export default function UploadPanel({
                   aria-hidden
                   decoding="async"
                 />
-                <div className="capture-reference-generating-label">Generating…</div>
+                <div
+                  className="capture-reference-loading-overlay"
+                  aria-hidden
+                  role="presentation"
+                >
+                  <div className="capture-reference-loading-content">
+                    <span className="capture-reference-spinner" aria-hidden />
+                    <span className="capture-reference-loading-text">
+                      {captureWithGeminiLoading ? "Processing with AI…" : "Generating…"}
+                    </span>
+                  </div>
+                </div>
               </>
             )}
             {captureMode === "form" && outlineDataUrl && (
@@ -329,14 +361,14 @@ export default function UploadPanel({
               />
             )}
             <div className="capture-reference-grid" aria-hidden />
-            {outlineError && captureMode === "form" && (
+            {(outlineError || (captureWithGeminiError && captureMode === "form")) && captureMode === "form" && (
               <p className="capture-reference-outline-error" role="alert">
-                {outlineError}
+                {captureWithGeminiError ?? outlineError}
               </p>
             )}
-            {shadingError && captureMode === "shading" && (
+            {(shadingError || (captureWithGeminiError && captureMode === "shading")) && captureMode === "shading" && (
               <p className="capture-reference-outline-error" role="alert">
-                {shadingError}
+                {captureWithGeminiError ?? shadingError}
               </p>
             )}
             {!(outlineDataUrl || shadingDataUrl) && (
@@ -373,6 +405,7 @@ export default function UploadPanel({
                   setShadingDataUrl(null);
                   setShadingError(null);
                   setOutlineError(null);
+                  setCaptureWithGeminiError(null);
                   getOutline();
                 }}
                 aria-pressed={captureMode === "form"}
@@ -388,6 +421,7 @@ export default function UploadPanel({
                   setOutlineDataUrl(null);
                   setOutlineError(null);
                   setShadingError(null);
+                  setCaptureWithGeminiError(null);
                   getShading();
                 }}
                 aria-pressed={captureMode === "shading"}
@@ -422,6 +456,7 @@ export default function UploadPanel({
               type="button"
               className="capture-reference-capture-btn"
               onClick={capturePhoto}
+              disabled={captureWithGeminiLoading}
               aria-label="Capture photo"
             />
           </div>

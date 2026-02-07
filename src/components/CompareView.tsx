@@ -339,7 +339,9 @@ export default function CompareView({
         <button
           type="button"
           className="primary-button"
+          disabled={!drawingUrl}
           onClick={() => onEvaluate?.()}
+          title={!drawingUrl ? "Add a drawing to evaluate" : undefined}
         >
           Evaluate
         </button>
