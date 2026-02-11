@@ -1,7 +1,7 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 
 const GEMINI_TEXT_MODEL = "gemini-2.0-flash";
-const EVALUATE_PROMPT = `You are a supportive art teacher. The user has shared two images: first a reference (photo or subject), second their drawing of it.
+const EVALUATE_PROMPT = `You are a supportive art teacher. The user has shared two images: first the reference they used (a photo, an outline, or another guide), second their drawing of it.
 
 Respond with ONLY a valid JSON object (no markdown, no code fence, no extra text). Use this exact shape:
 {
@@ -56,22 +56,45 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     ]
   };
 
+  const maxAttempts = 3;
+  const backoffMs = [1000, 2000];
+
   try {
-    const geminiRes = await fetch(url, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body)
-    });
-    if (!geminiRes.ok) {
-      const errText = await geminiRes.text();
-      return res.status(502).json({ error: `Gemini error: ${errText.slice(0, 200)}` });
+    let lastErrText = "";
+    let lastStatus = 0;
+    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+      const geminiRes = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body)
+      });
+      lastErrText = await geminiRes.text();
+      lastStatus = geminiRes.status;
+      if (geminiRes.ok) {
+        const data = JSON.parse(lastErrText) as {
+          candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }>;
+        };
+        const text = data.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
+        if (text) return res.status(200).json({ text });
+        return res.status(502).json({ error: "No evaluation in Gemini response." });
+      }
+      const is429 =
+        geminiRes.status === 429 ||
+        lastErrText.includes("429") ||
+        lastErrText.includes("Resource exhausted");
+      if (!is429 || attempt === maxAttempts) {
+        const message = is429
+          ? "Rate limit reached. Please try again in a minute."
+          : `Gemini error: ${lastErrText.slice(0, 200)}`;
+        return res.status(is429 ? 429 : 502).json({ error: message });
+      }
+      await new Promise((r) => setTimeout(r, backoffMs[attempt - 1] ?? 2000));
     }
-    const data = (await geminiRes.json()) as {
-      candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }>;
-    };
-    const text = data.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
-    if (text) return res.status(200).json({ text });
-    return res.status(502).json({ error: "No evaluation in Gemini response." });
+    const message =
+      lastStatus === 429 || lastErrText.includes("429") || lastErrText.includes("Resource exhausted")
+        ? "Rate limit reached. Please try again in a minute."
+        : `Gemini error: ${lastErrText.slice(0, 200)}`;
+    return res.status(429).json({ error: message });
   } catch (e) {
     const message = e instanceof Error ? e.message : String(e);
     return res.status(500).json({ error: message });

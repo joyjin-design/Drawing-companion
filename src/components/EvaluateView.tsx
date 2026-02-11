@@ -105,7 +105,7 @@ export default function EvaluateView({
 
   const drawingTransform = useMemo(() => {
     const { scale, rotation, translateX, translateY } = overlaySettings;
-    return `translate(-50%, -50%) translate(${translateX}px, ${translateY}px) scale(${scale}) rotate(${rotation}deg)`;
+    return `translate(${translateX}px, ${translateY}px) scale(${scale}) rotate(${rotation}deg)`;
   }, [overlaySettings]);
 
   useEffect(() => {
@@ -179,6 +179,7 @@ export default function EvaluateView({
       </header>
 
       <section className="evaluate-content">
+        <p className="evaluate-compare-caption">Comparing your reference to your drawing.</p>
         <div className="evaluate-preview">
           {referenceUrl && (
             <ProgressiveImage

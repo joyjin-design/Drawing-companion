@@ -29,6 +29,13 @@ The Gemini API key is **never** sent to the browser. The frontend calls your own
     ```
   - **Option B:** Run `vercel dev` so both the app and API run locally (API will use `GEMINI_API_KEY` from a local `.env` if you add it for dev).
 
+## Dependencies and npm audit
+
+`npm audit` may report vulnerabilities in transitive dependencies of `@vercel/node` (e.g. `path-to-regexp`, `undici`). These live in Vercel’s serverless runtime; our code only uses the `VercelRequest` / `VercelResponse` types.
+
+- **Do not run `npm audit fix --force`.** It downgrades `@vercel/node` to 4.x and introduces more issues (e.g. esbuild, tar). Keep `@vercel/node` at **5.x** until Vercel publishes a release that uses patched versions of those dependencies.
+- After upgrading `@vercel/node` in the future, run `npm audit` again to confirm.
+
 ## Quick check
 
 - **"Server missing GEMINI_API_KEY"** → Set `GEMINI_API_KEY` in Vercel (not `VITE_GEMINI_API_KEY`) and redeploy.

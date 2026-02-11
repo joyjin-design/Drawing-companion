@@ -103,7 +103,7 @@ export default function CompareView({
 
   const drawingTransform = useMemo(() => {
     const { scale, rotation, translateX, translateY } = overlaySettings;
-    return `translate(-50%, -50%) translate(${translateX}px, ${translateY}px) scale(${scale}) rotate(${rotation}deg)`;
+    return `translate(${translateX}px, ${translateY}px) scale(${scale}) rotate(${rotation}deg)`;
   }, [overlaySettings]);
 
   const guideClass = `guide-layer${guides.grid ? " grid" : ""}${
@@ -233,7 +233,7 @@ export default function CompareView({
         </div>
         {!referenceUrl && !drawingUrl ? (
           <div className="empty-state">
-            <p>Add a reference and drawing photo to start comparing.</p>
+            <p>Add your reference and your drawing to compare.</p>
             <div className="empty-actions">
               <button className="secondary-button" onClick={onAddReference}>
                 Add reference
@@ -330,9 +330,6 @@ export default function CompareView({
       </section>
 
       <footer className="compare-footer">
-        <button className="secondary-button" onClick={onAddReference}>
-          Update reference
-        </button>
         <button className="secondary-button" onClick={onAddDrawing}>
           Add drawing
         </button>
