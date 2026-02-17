@@ -26,7 +26,10 @@ export async function getOutlineFromImage(base64Jpeg: string): Promise<OutlineRe
       body: JSON.stringify({ base64: base64Jpeg })
     });
     const data = await parseJsonSafe<{ dataUrl?: string; error?: string }>(res);
-    if (!res.ok) return { error: data?.error ?? `Request failed (${res.status}). Try again.` };
+    if (!res.ok) {
+      const msg = data?.error ?? (res.status === 500 ? "Server error. Check that the API is running and GEMINI_API_KEY is set." : `Request failed (${res.status}). Try again.`);
+      return { error: msg };
+    }
     if (data?.dataUrl) return { dataUrl: data.dataUrl };
     return { error: data?.error ?? "No image in response." };
   } catch (e) {
@@ -43,7 +46,10 @@ export async function getShadingFromImage(base64Jpeg: string): Promise<ShadingRe
       body: JSON.stringify({ base64: base64Jpeg })
     });
     const data = await parseJsonSafe<{ dataUrl?: string; error?: string }>(res);
-    if (!res.ok) return { error: data?.error ?? `Request failed (${res.status}). Try again.` };
+    if (!res.ok) {
+      const msg = data?.error ?? (res.status === 500 ? "Server error. Check that the API is running and GEMINI_API_KEY is set." : `Request failed (${res.status}). Try again.`);
+      return { error: msg };
+    }
     if (data?.dataUrl) return { dataUrl: data.dataUrl };
     return { error: data?.error ?? "No image in response." };
   } catch (e) {
@@ -68,7 +74,10 @@ export async function evaluateDrawing(
       })
     });
     const data = await parseJsonSafe<{ text?: string; error?: string }>(res);
-    if (!res.ok) return { error: data?.error ?? `Request failed (${res.status}). Try again.` };
+    if (!res.ok) {
+      const msg = data?.error ?? (res.status === 500 ? "Server error. Check that the API is running and GEMINI_API_KEY is set." : `Request failed (${res.status}). Try again.`);
+      return { error: msg };
+    }
     if (data?.text) return { text: data.text };
     return { error: data?.error ?? "No evaluation in response." };
   } catch (e) {

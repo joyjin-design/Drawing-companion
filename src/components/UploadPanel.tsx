@@ -30,7 +30,7 @@ export default function UploadPanel({
 
   const [cameraActive, setCameraActive] = useState(false);
   const [cameraError, setCameraError] = useState<string | null>(null);
-  const [captureMode, setCaptureMode] = useState<"form" | "shading">("form");
+  const [captureMode, setCaptureMode] = useState<"form" | "shading" | "colors">("form");
   const [outlineDataUrl, setOutlineDataUrl] = useState<string | null>(null);
   const [outlineLoading, setOutlineLoading] = useState(false);
   const [outlineError, setOutlineError] = useState<string | null>(null);
@@ -223,6 +223,11 @@ export default function UploadPanel({
       );
     };
 
+    if (captureMode === "colors") {
+      usePhotoFallback();
+      return;
+    }
+
     const isForm = captureMode === "form";
     const isShading = captureMode === "shading";
     if (isForm || isShading) {
@@ -399,6 +404,22 @@ export default function UploadPanel({
             <div className="capture-reference-modes">
               <button
                 type="button"
+                className={`capture-reference-mode-btn ${captureMode === "colors" ? "active" : ""}`}
+                onClick={() => {
+                  setCaptureMode("colors");
+                  setOutlineDataUrl(null);
+                  setShadingDataUrl(null);
+                  setOutlineError(null);
+                  setShadingError(null);
+                  setCaptureWithGeminiError(null);
+                }}
+                aria-pressed={captureMode === "colors"}
+              >
+                <span className="mode-icon" aria-hidden />
+                <span>Colors</span>
+              </button>
+              <button
+                type="button"
                 className={`capture-reference-mode-btn ${captureMode === "form" ? "active" : ""}`}
                 onClick={() => {
                   setCaptureMode("form");
@@ -430,28 +451,6 @@ export default function UploadPanel({
                 <span>Shading</span>
               </button>
             </div>
-            {captureMode === "form" && (
-              <button
-                type="button"
-                className="capture-reference-outline-btn"
-                onClick={getOutline}
-                disabled={outlineLoading}
-                aria-label={outlineDataUrl ? "Refresh outline" : "Get outline view"}
-              >
-                {outlineLoading ? "Generating…" : outlineDataUrl ? "Refresh outline" : "Show outline"}
-              </button>
-            )}
-            {captureMode === "shading" && (
-              <button
-                type="button"
-                className="capture-reference-outline-btn"
-                onClick={getShading}
-                disabled={shadingLoading}
-                aria-label={shadingDataUrl ? "Refresh shading reference" : "Generate rough outline and shading"}
-              >
-                {shadingLoading ? "Generating…" : shadingDataUrl ? "Refresh" : "Generate again"}
-              </button>
-            )}
             <button
               type="button"
               className="capture-reference-capture-btn"
@@ -468,7 +467,7 @@ export default function UploadPanel({
         </p>
       )}
       <header className="top-bar">
-        <button className="icon-button" type="button" aria-label="Sparkle">
+        <button className="icon-button sparkle-badge" type="button" aria-label="Sparkle">
           ✦
         </button>
         <button
@@ -485,7 +484,10 @@ export default function UploadPanel({
         <div className="hero-orbit">
           <div className="hero-orbit-ring" />
           <div className="hero-camera">
-            <span>📷</span>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+              <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
+              <circle cx="12" cy="13" r="4" />
+            </svg>
           </div>
         </div>
 

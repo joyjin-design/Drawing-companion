@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import CompareView from "./components/CompareView";
 import EvaluateView from "./components/EvaluateView";
+import ReferenceView from "./components/ReferenceView";
 import SessionList from "./components/SessionList";
 import UploadPanel from "./components/UploadPanel";
 import {
@@ -85,7 +86,7 @@ type ImageState = {
   height: number;
 };
 
-type View = "home" | "compare" | "evaluate" | "sessions";
+type View = "home" | "reference" | "compare" | "evaluate" | "sessions";
 
 export default function App() {
   const [view, setView] = useState<View>("home");
@@ -111,6 +112,7 @@ export default function App() {
   const [syncError, setSyncError] = useState<string | null>(null);
 
   const referenceInputRef = useRef<HTMLInputElement>(null);
+  const referenceCameraInputRef = useRef<HTMLInputElement>(null);
   const drawingInputRef = useRef<HTMLInputElement>(null);
 
   const refreshSessions = useCallback(async () => {
@@ -205,7 +207,7 @@ export default function App() {
         return image;
       });
       if (source) setReferenceSource(source);
-      setView("compare");
+      setView((currentView) => (currentView === "reference" ? "reference" : "reference"));
     },
     [processFile]
   );
@@ -429,6 +431,16 @@ export default function App() {
             />
           )}
 
+          {view === "reference" && reference && (
+            <ReferenceView
+              referenceUrl={reference.url}
+              referencePreviewUrl={reference.previewUrl ?? null}
+              onBack={() => setView("home")}
+              onScanSketch={() => referenceCameraInputRef.current?.click()}
+              onUploadFromGallery={() => referenceInputRef.current?.click()}
+            />
+          )}
+
           {view === "compare" && (
             <CompareView
               referenceUrl={reference?.url}
@@ -469,7 +481,11 @@ export default function App() {
               onOpen={openSession}
               onDelete={handleDeleteSession}
               onRename={handleRenameSession}
-              onBack={() => setView(compareReady ? "compare" : "home")}
+              onBack={() =>
+                setView(
+                  compareReady ? "compare" : reference ? "reference" : "home"
+                )
+              }
               cloudEnabled={isSupabaseConfigured()}
               authUser={authUser}
               authLoading={authLoading}
@@ -486,6 +502,17 @@ export default function App() {
             className="file-input"
             type="file"
             accept="image/*"
+            onChange={(event) => {
+              const file = event.target.files?.[0];
+              if (file) handleReference(file);
+            }}
+          />
+          <input
+            ref={referenceCameraInputRef}
+            className="file-input"
+            type="file"
+            accept="image/*"
+            capture="environment"
             onChange={(event) => {
               const file = event.target.files?.[0];
               if (file) handleReference(file);

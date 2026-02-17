@@ -95,6 +95,11 @@ button {
   gap: 20px;
 }
 
+.home-screen {
+  background: #F7F4F0;
+  min-height: 100%;
+}
+
 .top-bar {
   display: flex;
   align-items: center;
@@ -121,6 +126,12 @@ button {
   cursor: default;
 }
 
+.home-screen .icon-button.sparkle-badge {
+  background: #E1E8DC;
+  color: #83A389;
+  box-shadow: none;
+}
+
 .hero {
   position: relative;
   display: grid;
@@ -145,12 +156,26 @@ button {
   animation: orbit-glow 6s ease-in-out infinite;
 }
 
+.home-screen .hero-orbit {
+  background: radial-gradient(
+    circle,
+    rgba(255, 255, 255, 0.6) 0%,
+    rgba(255, 255, 255, 0.6) 100%
+  );
+  animation: none;
+}
+
 .hero-orbit-ring {
   width: 170px;
   height: 170px;
   border-radius: 50%;
   border: 4px dashed rgba(125, 130, 150, 0.4);
   animation: orbit-spin 12s linear infinite;
+}
+
+.home-screen .hero-orbit-ring {
+  border: 3px dashed #83A389;
+  animation: none;
 }
 
 .hero-camera {
@@ -167,6 +192,18 @@ button {
   animation: bob 4s ease-in-out infinite;
 }
 
+.home-screen .hero-camera {
+  background: transparent;
+  box-shadow: none;
+  color: #83A389;
+  animation: none;
+}
+
+.home-screen .hero-camera svg {
+  width: 40px;
+  height: 40px;
+}
+
 .floating-card {
   position: absolute;
   width: 110px;
@@ -178,6 +215,10 @@ button {
   place-items: center;
   overflow: hidden;
   animation: floaty 5s ease-in-out infinite;
+}
+
+.home-screen .floating-card {
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
 }
 
 .floating-card img {
@@ -218,11 +259,19 @@ button {
   margin: 0 0 12px;
 }
 
+.home-screen .home-copy h1 {
+  color: #2B2B2B;
+}
+
 .home-copy p {
   font-size: 14px;
   color: var(--muted);
   line-height: 1.5;
   margin: 0 0 48px;
+}
+
+.home-screen .home-copy p {
+  color: #6B6B6B;
 }
 
 .home-actions {
@@ -276,6 +325,154 @@ button {
   opacity: 0.5;
   cursor: not-allowed;
   transform: none;
+}
+
+.home-screen .home-actions .primary-button {
+  background: #E06F3D;
+  color: white;
+  border-radius: 999px;
+  box-shadow: 0 4px 14px rgba(224, 111, 61, 0.35);
+}
+
+.home-screen .home-actions .primary-button:hover:not(:disabled) {
+  box-shadow: none;
+}
+
+.home-screen .home-actions .secondary-button {
+  background: transparent;
+  color: #617A8C;
+  border: 2px solid #617A8C;
+  border-radius: 999px;
+  box-shadow: none;
+}
+
+.home-screen .home-actions .secondary-button:hover:not(:disabled) {
+  box-shadow: none;
+}
+
+/* Reference view (screen after taking a reference) */
+.reference-view {
+  background: #F7F4F0;
+  min-height: 100%;
+  padding: 0 24px;
+  box-sizing: border-box;
+}
+
+.reference-screen-header {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 40px 0 20px;
+  min-height: 56px;
+}
+
+.reference-screen-back,
+.reference-screen-upload {
+  border: none;
+  background: transparent;
+  color: #2B2B2B;
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  padding: 0;
+  font-size: 24px;
+}
+
+.reference-screen-upload {
+  font-size: 0;
+}
+
+.reference-screen-upload svg {
+  width: 24px;
+  height: 24px;
+}
+
+.reference-screen-title {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 18px;
+  font-weight: 600;
+  color: #2B2B2B;
+  margin: 0;
+}
+
+.reference-image-area {
+  width: min(92%, 72vh, 396px);
+  margin: 32px auto 40px;
+  aspect-ratio: 1;
+  border-radius: 20px;
+  overflow: hidden;
+  background: #EDE9E4;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.reference-image-area img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.reference-image-area .progressive-image {
+  width: 100%;
+  height: 100%;
+  display: block;
+  min-width: 0;
+  min-height: 0;
+}
+
+.reference-image-area .progressive-image-preview,
+.reference-image-area .progressive-image-full {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.reference-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 0 0 40px;
+}
+
+.reference-actions-primary {
+  background: #E06F3D;
+  color: white;
+  border: none;
+  border-radius: 999px;
+  padding: 16px 20px;
+  font-size: 16px;
+  font-weight: 600;
+  min-height: 48px;
+  box-shadow: 0 4px 14px rgba(224, 111, 61, 0.35);
+  cursor: pointer;
+}
+
+.reference-actions-primary:hover {
+  box-shadow: 0 4px 14px rgba(224, 111, 61, 0.45);
+}
+
+.reference-actions-secondary {
+  background: #F7F4F0;
+  color: #6B8CA8;
+  border: 1px solid #6B8CA8;
+  border-radius: 999px;
+  padding: 16px 20px;
+  font-size: 16px;
+  font-weight: 600;
+  min-height: 48px;
+  box-shadow: none;
+  cursor: pointer;
+}
+
+.reference-actions-secondary:hover {
+  background: rgba(107, 140, 168, 0.08);
 }
 
 .divider {
@@ -1021,7 +1218,7 @@ button {
   position: absolute;
   inset: 0;
   z-index: 100;
-  background: #1a1c24;
+  background: rgba(0, 0, 0, 1);
   display: flex;
   flex-direction: column;
 }
@@ -1031,7 +1228,7 @@ button {
   align-items: center;
   justify-content: space-between;
   padding: 16px 20px;
-  background: rgba(0, 0, 0, 0.3);
+  background: #000000;
   color: #ffffff;
   flex-shrink: 0;
   font-family: "Nunito";
@@ -1061,7 +1258,7 @@ button {
   position: relative;
   flex: 1;
   min-height: 0;
-  background: #0e0f13;
+  background: #16181d;
 }
 
 .capture-reference-preview {
@@ -1077,8 +1274,8 @@ button {
   position: absolute;
   inset: 0;
   background-image:
-    linear-gradient(rgba(255, 255, 255, 0.12) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255, 255, 255, 0.12) 1px, transparent 1px);
+    linear-gradient(rgba(255, 255, 255, 0.08) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.08) 1px, transparent 1px);
   background-size: 33.333% 33.333%;
   pointer-events: none;
 }
@@ -1101,7 +1298,7 @@ button {
   position: absolute;
   width: 24px;
   height: 24px;
-  border-color: rgba(255, 255, 255, 0.9);
+  border-color: rgba(255, 255, 255, 0.75);
   border-style: solid;
   border-width: 0;
 }
@@ -1149,13 +1346,13 @@ button {
   position: absolute;
   width: 80px;
   height: 80px;
-  border: 2px dashed rgba(255, 255, 255, 0.5);
+  border: 2px dashed rgba(255, 255, 255, 0.55);
   border-radius: 50%;
 }
 .capture-reference-center .center-solid {
   width: 40px;
   height: 40px;
-  background: rgba(60, 62, 75, 0.9);
+  background: #2a2c34;
   border-radius: 50%;
 }
 
@@ -1169,7 +1366,7 @@ button {
 }
 
 .capture-reference-tip {
-  display: flex;
+  display: none;
   align-items: center;
   gap: 8px;
   padding: 12px 8px;
@@ -1189,7 +1386,8 @@ button {
 
 .capture-reference-controls {
   padding: 20px 24px 32px;
-  background: linear-gradient(to top, rgba(0, 0, 0, 0.5), transparent);
+  background: #2a2d36;
+  border-radius: 24px 24px 0 0;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -1201,10 +1399,10 @@ button {
 .capture-reference-modes {
   position: relative;
   display: flex;
-  align-items: flex-end;
+  align-items: center;
   justify-content: center;
-  gap: 48px;
-  padding-bottom: 8px;
+  gap: 32px;
+  padding-bottom: 12px;
 }
 .capture-reference-mode-btn {
   display: flex;
@@ -1213,8 +1411,11 @@ button {
   gap: 4px;
   border: none;
   background: transparent;
-  color: rgba(255, 255, 255, 0.7);
-  font-size: 12px;
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 14px;
+  font-weight: 400;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
   cursor: pointer;
   padding: 0;
   transition: color 0.2s ease;
@@ -1222,6 +1423,13 @@ button {
 .capture-reference-mode-btn.active,
 .capture-reference-mode-btn:hover {
   color: #ffffff;
+  font-weight: 700;
+}
+.capture-reference-mode-btn > span:last-child {
+  width: 70px;
+}
+.capture-reference-mode-btn .mode-icon {
+  display: none;
 }
 .mode-icon {
   display: block;
@@ -1239,16 +1447,16 @@ button {
   width: 72px;
   height: 72px;
   border-radius: 50%;
-  border: 4px solid rgba(111, 73, 255, 0.6);
-  background: linear-gradient(135deg, #8b7dd4 0%, #6f49ff 100%);
+  border: 4px solid #4b5563;
+  background: #ffffff;
+  box-shadow: 0 0 0 4px #9ca3af;
   cursor: pointer;
-  box-shadow: 0 4px 20px rgba(111, 73, 255, 0.4);
   flex-shrink: 0;
-  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  transition: transform 0.15s ease, opacity 0.15s ease;
 }
 .capture-reference-capture-btn:hover {
   transform: scale(1.05);
-  box-shadow: 0 6px 24px rgba(111, 73, 255, 0.5);
+  opacity: 0.95;
 }
 .capture-reference-capture-btn:active {
   transform: scale(0.98);
