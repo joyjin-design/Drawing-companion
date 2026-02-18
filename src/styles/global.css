@@ -106,6 +106,11 @@ button {
   justify-content: space-between;
 }
 
+.home-screen .top-bar {
+  justify-content: flex-end;
+  align-items: flex-end;
+}
+
 .icon-button {
   border: none;
   background: rgba(255, 255, 255, 0.8);
@@ -127,8 +132,13 @@ button {
 }
 
 .home-screen .icon-button.sparkle-badge {
+  display: none;
   background: #E1E8DC;
   color: #83A389;
+  box-shadow: none;
+}
+
+.home-screen .top-bar .icon-button {
   box-shadow: none;
 }
 
@@ -157,11 +167,9 @@ button {
 }
 
 .home-screen .hero-orbit {
-  background: radial-gradient(
-    circle,
-    rgba(255, 255, 255, 0.6) 0%,
-    rgba(255, 255, 255, 0.6) 100%
-  );
+  color: rgba(255, 255, 255, 1);
+  background: none;
+  background-color: rgba(255, 255, 255, 1);
   animation: none;
 }
 
@@ -354,7 +362,7 @@ button {
 .reference-view {
   background: #F7F4F0;
   min-height: 100%;
-  padding: 0 24px;
+  padding: 0;
   box-sizing: border-box;
 }
 
@@ -363,7 +371,7 @@ button {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 40px 0 20px;
+  padding: 40px 24px 20px 24px;
   min-height: 56px;
 }
 
@@ -401,10 +409,10 @@ button {
 }
 
 .reference-image-area {
-  width: min(92%, 72vh, 396px);
-  margin: 32px auto 40px;
+  width: 100%;
+  margin: 32px 0 40px;
   aspect-ratio: 1;
-  border-radius: 20px;
+  border-radius: 0;
   overflow: hidden;
   background: #EDE9E4;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
@@ -438,7 +446,7 @@ button {
   display: flex;
   flex-direction: column;
   gap: 16px;
-  padding: 0 0 40px;
+  padding: 0 24px 40px;
 }
 
 .reference-actions-primary {
@@ -598,6 +606,8 @@ button {
   position: absolute;
   top: 50%;
   left: 50%;
+  width: 100%;
+  height: 100%;
   max-width: 100%;
   max-height: 100%;
   transform: translate(-50%, -50%);
