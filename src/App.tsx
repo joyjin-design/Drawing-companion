@@ -1,9 +1,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import CompareView from "./components/CompareView";
 import EvaluateView from "./components/EvaluateView";
+import Onboarding from "./components/Onboarding";
 import ReferenceView from "./components/ReferenceView";
 import SessionList from "./components/SessionList";
 import UploadPanel from "./components/UploadPanel";
+import { hasSeenOnboarding } from "./components/Onboarding";
 import {
   deleteImage,
   deleteSession,
@@ -90,6 +92,7 @@ type View = "home" | "reference" | "compare" | "evaluate" | "sessions";
 
 export default function App() {
   const [view, setView] = useState<View>("home");
+  const [startCameraAfterOnboarding, setStartCameraAfterOnboarding] = useState(false);
   const [reference, setReference] = useState<ImageState | null>(null);
   const [drawing, setDrawing] = useState<ImageState | null>(null);
   const [compareMode, setCompareMode] = useState<CompareMode>("overlay");
@@ -414,11 +417,44 @@ export default function App() {
 
   const compareReady = useMemo(() => reference && drawing, [reference, drawing]);
 
+  const showOnboarding =
+    !authUser && !hasSeenOnboarding();
+
+  const handleOnboardingFinish = useCallback(() => {
+    setView("home");
+  }, []);
+
+  const handleOnboardingFinishAndStartCamera = useCallback(() => {
+    setView("home");
+    setStartCameraAfterOnboarding(true);
+  }, []);
+
+  useEffect(() => {
+    if (!startCameraAfterOnboarding || view !== "home") return;
+    const t = setTimeout(() => {
+      referenceCameraInputRef.current?.click();
+      setStartCameraAfterOnboarding(false);
+    }, 0);
+    return () => clearTimeout(t);
+  }, [startCameraAfterOnboarding, view]);
+
+  const handleOnboardingLogIn = useCallback(() => {
+    setView("sessions");
+  }, []);
+
   return (
     <div className="app">
       <div className="device-shell">
         <div className="device-notch" />
         <div className="device-screen">
+          {showOnboarding ? (
+            <Onboarding
+              onFinish={handleOnboardingFinish}
+              onLogIn={handleOnboardingLogIn}
+              onFinishAndStartCamera={handleOnboardingFinishAndStartCamera}
+            />
+          ) : (
+            <>
           {view === "home" && (
             <UploadPanel
               referenceUrl={reference?.url}
@@ -495,6 +531,9 @@ export default function App() {
               onCloudSignOut={handleCloudSignOut}
               onCloudSync={handleCloudSync}
             />
+          )}
+
+            </>
           )}
 
           <input
