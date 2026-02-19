@@ -135,6 +135,8 @@ export default function App() {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setAuthUser(session?.user ?? null);
       setAuthLoading(false);
+    }).catch(() => {
+      setAuthLoading(false);
     });
     const {
       data: { subscription }
@@ -417,8 +419,13 @@ export default function App() {
 
   const compareReady = useMemo(() => reference && drawing, [reference, drawing]);
 
-  const showOnboarding =
-    !authUser && !hasSeenOnboarding();
+  const hasSeen = hasSeenOnboarding(authUser);
+  const showOnboarding = !hasSeen;
+  // #region agent log
+  (() => {
+    fetch("http://127.0.0.1:7543/ingest/061dfdc9-29cb-4d00-8ed1-24635fe0b4c4", { method: "POST", headers: { "Content-Type": "application/json", "X-Debug-Session-Id": "c81602" }, body: JSON.stringify({ sessionId: "c81602", hypothesisId: "H4-H5", location: "App.tsx:showOnboarding", message: "onboarding visibility", data: { authUserId: authUser?.id ?? null, hasSeen, showOnboarding }, timestamp: Date.now() }) }).catch(() => {});
+  })();
+  // #endregion
 
   const handleOnboardingFinish = useCallback(() => {
     setView("home");
@@ -447,11 +454,17 @@ export default function App() {
       <div className="device-shell">
         <div className="device-notch" />
         <div className="device-screen">
-          {showOnboarding ? (
+          {(() => {
+            // #region agent log
+            fetch("http://127.0.0.1:7543/ingest/061dfdc9-29cb-4d00-8ed1-24635fe0b4c4", { method: "POST", headers: { "Content-Type": "application/json", "X-Debug-Session-Id": "c81602" }, body: JSON.stringify({ sessionId: "c81602", hypothesisId: "H4", location: "App.tsx:render", message: "render branch", data: { showOnboarding, rendering: showOnboarding ? "Onboarding" : "main" }, timestamp: Date.now() }) }).catch(() => {});
+            // #endregion
+            return showOnboarding;
+          })() ? (
             <Onboarding
               onFinish={handleOnboardingFinish}
               onLogIn={handleOnboardingLogIn}
               onFinishAndStartCamera={handleOnboardingFinishAndStartCamera}
+              authUserId={authUser?.id ?? null}
             />
           ) : (
             <>

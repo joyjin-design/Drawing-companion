@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" fill="none">
+  <!-- Four L-shaped corner brackets with rounded outer corners, 2px stroke -->
+  <path d="M 0 18 L 0 0 L 18 0" stroke="#E96025" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke"/>
+  <path d="M 82 0 L 100 0 L 100 18" stroke="#E96025" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke"/>
+  <path d="M 0 82 L 0 100 L 18 100" stroke="#E96025" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke"/>
+  <path d="M 82 100 L 100 100 L 100 82" stroke="#E96025" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke"/>
+  <!-- Center dot (half of previous size) -->
+  <circle cx="50" cy="50" r="1.5" fill="#E96025"/>
+</svg>

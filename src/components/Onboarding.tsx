@@ -1,29 +1,54 @@
 import { useState } from "react";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faArrowLeft } from "@fortawesome/free-solid-svg-icons";
 
-const ONBOARDING_STORAGE_KEY = "drawing-companion-onboarding-done";
+const ONBOARDING_SESSION_KEY = "drawing-companion-onboarding-done-session";
 
-export function setOnboardingDone(): void {
-  if (typeof localStorage !== "undefined") {
-    localStorage.setItem(ONBOARDING_STORAGE_KEY, "1");
+function onboardingKeyForUser(userId: string): string {
+  return `drawing-companion-onboarding-done-${userId}`;
+}
+
+export function setOnboardingDone(userId?: string): void {
+  if (typeof window === "undefined") return;
+  if (userId) {
+    localStorage.setItem(onboardingKeyForUser(userId), "1");
+  } else {
+    sessionStorage.setItem(ONBOARDING_SESSION_KEY, "1");
   }
 }
 
-export function hasSeenOnboarding(): boolean {
-  if (typeof localStorage === "undefined") return false;
-  return localStorage.getItem(ONBOARDING_STORAGE_KEY) === "1";
+export function hasSeenOnboarding(authUser: { id: string } | null): boolean {
+  if (typeof window === "undefined") return false;
+  let result: boolean;
+  let keyUsed: string;
+  let rawValue: string | null;
+  if (authUser) {
+    keyUsed = onboardingKeyForUser(authUser.id);
+    rawValue = localStorage.getItem(keyUsed);
+    result = rawValue === "1";
+  } else {
+    keyUsed = ONBOARDING_SESSION_KEY;
+    rawValue = sessionStorage.getItem(keyUsed);
+    result = rawValue === "1";
+  }
+  // #region agent log
+  fetch("http://127.0.0.1:7543/ingest/061dfdc9-29cb-4d00-8ed1-24635fe0b4c4", { method: "POST", headers: { "Content-Type": "application/json", "X-Debug-Session-Id": "c81602" }, body: JSON.stringify({ sessionId: "c81602", hypothesisId: "H1-H3", location: "Onboarding.tsx:hasSeenOnboarding", message: "hasSeenOnboarding", data: { authUserId: authUser?.id ?? null, keyUsed, rawValue, result }, timestamp: Date.now() }) }).catch(() => {});
+  // #endregion
+  return result;
 }
 
 export type OnboardingProps = {
   onFinish: () => void;
   onLogIn: () => void;
   onFinishAndStartCamera?: () => void;
+  authUserId?: string | null;
 };
 
-export default function Onboarding({ onFinish, onLogIn, onFinishAndStartCamera }: OnboardingProps) {
+export default function Onboarding({ onFinish, onLogIn, onFinishAndStartCamera, authUserId = null }: OnboardingProps) {
   const [step, setStep] = useState<0 | 1 | 2 | 3>(0);
 
   const handleSkip = () => {
-    setOnboardingDone();
+    setOnboardingDone(authUserId ?? undefined);
     onFinish();
   };
 
@@ -34,7 +59,7 @@ export default function Onboarding({ onFinish, onLogIn, onFinishAndStartCamera }
   };
 
   const handleLogIn = () => {
-    setOnboardingDone();
+    setOnboardingDone(authUserId ?? undefined);
     onLogIn();
   };
 
@@ -44,7 +69,7 @@ export default function Onboarding({ onFinish, onLogIn, onFinishAndStartCamera }
     else if (step === 2) setStep(3);
   };
   const handleGetStartedFinal = () => {
-    setOnboardingDone();
+    setOnboardingDone(authUserId ?? undefined);
     if (onFinishAndStartCamera) {
       onFinishAndStartCamera();
     } else {
@@ -63,6 +88,8 @@ export default function Onboarding({ onFinish, onLogIn, onFinishAndStartCamera }
               type="button"
               className="onboarding-link"
               onClick={handleLogIn}
+              style={{ display: "none" }}
+              aria-hidden
             >
               Sign up
             </button>
@@ -111,7 +138,15 @@ export default function Onboarding({ onFinish, onLogIn, onFinishAndStartCamera }
               className="onboarding-btn-primary"
               onClick={handleGetStartedWelcome}
             >
-              Get started →
+              Get started{" "}
+              <svg
+                className="onboarding-btn-icon"
+                viewBox="0 0 448 512"
+                fill="currentColor"
+                aria-hidden
+              >
+                <path d="M438.6 278.6c12.5-12.5 12.5-32.8 0-45.3l-160-160c-12.5-12.5-32.8-12.5-45.3 0s-12.5 32.8 0 45.3L338.8 224 32 224c-17.7 0-32 14.3-32 32s14.3 32 32 32l306.7 0L233.4 393.4c-12.5 12.5-12.5 32.8 0 45.3s32.8 12.5 45.3 0l160-160z" />
+              </svg>
             </button>
             <button
               type="button"
@@ -132,18 +167,7 @@ export default function Onboarding({ onFinish, onLogIn, onFinishAndStartCamera }
               onClick={handleBack}
               aria-label="Previous step"
             >
-              <svg
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                aria-hidden
-              >
-                <title>arrow.left</title>
-                <path d="M15 18l-6-6 6-6" />
-              </svg>
+              <FontAwesomeIcon icon={faArrowLeft} aria-hidden />
             </button>
             <span className="onboarding-step-label">
               Step {step} of 3
@@ -172,7 +196,7 @@ export default function Onboarding({ onFinish, onLogIn, onFinishAndStartCamera }
               </p>
               <div className="onboarding-frame onboarding-frame-camera">
                 <img
-                  src="/onboarding/step1-daisy.svg"
+                  src="/onboarding/step1-daisy.png"
                   alt="Daisy in vase"
                   className="onboarding-frame-img"
                 />
@@ -185,7 +209,15 @@ export default function Onboarding({ onFinish, onLogIn, onFinishAndStartCamera }
                   className="onboarding-btn-primary"
                   onClick={handleNext}
                 >
-                  Next →
+                  Next{" "}
+                  <svg
+                    className="onboarding-btn-icon"
+                    viewBox="0 0 448 512"
+                    fill="currentColor"
+                    aria-hidden
+                  >
+                    <path d="M438.6 278.6c12.5-12.5 12.5-32.8 0-45.3l-160-160c-12.5-12.5-32.8-12.5-45.3 0s-12.5 32.8 0 45.3L338.8 224 32 224c-17.7 0-32 14.3-32 32s14.3 32 32 32l306.7 0L233.4 393.4c-12.5 12.5-12.5 32.8 0 45.3s32.8 12.5 45.3 0l160-160z" />
+                  </svg>
                 </button>
                 <button
                   type="button"
@@ -206,8 +238,9 @@ export default function Onboarding({ onFinish, onLogIn, onFinishAndStartCamera }
                 your vision into a masterpiece.
               </p>
               <div className="onboarding-frame">
+                {/* Step 2: hand drawing — always use step2-drawing.png */}
                 <img
-                  src="/onboarding/step2-drawing.svg"
+                  src="/onboarding/step2-drawing.png"
                   alt="Hand drawing"
                   className="onboarding-frame-img"
                 />
@@ -218,7 +251,15 @@ export default function Onboarding({ onFinish, onLogIn, onFinishAndStartCamera }
                   className="onboarding-btn-primary"
                   onClick={handleNext}
                 >
-                  Next →
+                  Next{" "}
+                  <svg
+                    className="onboarding-btn-icon"
+                    viewBox="0 0 448 512"
+                    fill="currentColor"
+                    aria-hidden
+                  >
+                    <path d="M438.6 278.6c12.5-12.5 12.5-32.8 0-45.3l-160-160c-12.5-12.5-32.8-12.5-45.3 0s-12.5 32.8 0 45.3L338.8 224 32 224c-17.7 0-32 14.3-32 32s14.3 32 32 32l306.7 0L233.4 393.4c-12.5 12.5-12.5 32.8 0 45.3s32.8 12.5 45.3 0l160-160z" />
+                  </svg>
                 </button>
                 <button
                   type="button"
@@ -242,16 +283,16 @@ export default function Onboarding({ onFinish, onLogIn, onFinishAndStartCamera }
                 <div className="onboarding-compare-panel">
                   <span className="onboarding-compare-tag">REFERENCE</span>
                   <img
-                    src="/onboarding/step3-reference.svg"
-                    alt="Reference photo"
+                    src="/onboarding/step1-daisy.png"
+                    alt="Daisy in vase"
                     className="onboarding-compare-img"
                   />
                 </div>
                 <div className="onboarding-compare-panel">
                   <span className="onboarding-compare-tag">DRAWING</span>
                   <img
-                    src="/onboarding/step3-drawing.svg"
-                    alt="Drawing"
+                    src="/onboarding/step2-drawing.png"
+                    alt="Hand drawing"
                     className="onboarding-compare-img"
                   />
                 </div>

@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { getOutlineFromImage, getShadingFromImage } from "../gemini";
 import { getOutlineDataUrl, getShadingDataUrl } from "../sketchClient";
 import ProgressiveImage from "./ProgressiveImage";
+import { SketchLoadingAnimation, SHAPES, LOADING_MESSAGES } from "./SketchLoadingAnimation";
 
 export type UploadPanelProps = {
   referenceUrl?: string | null;
@@ -40,6 +41,8 @@ export default function UploadPanel({
   const [generatingPreviewUrl, setGeneratingPreviewUrl] = useState<string | null>(null);
   const [captureWithGeminiLoading, setCaptureWithGeminiLoading] = useState(false);
   const [captureWithGeminiError, setCaptureWithGeminiError] = useState<string | null>(null);
+  const [captureShapeIndex, setCaptureShapeIndex] = useState(0);
+  const [captureMessageIndex, setCaptureMessageIndex] = useState(0);
 
   const stopCamera = useCallback(() => {
     streamRef.current?.getTracks().forEach((t) => t.stop());
@@ -54,6 +57,17 @@ export default function UploadPanel({
     setCaptureWithGeminiError(null);
     setCaptureWithGeminiLoading(false);
   }, []);
+
+  const showCaptureLoading =
+    (outlineLoading || shadingLoading || captureWithGeminiLoading) && !!generatingPreviewUrl;
+
+  useEffect(() => {
+    if (!showCaptureLoading) return;
+    const cycle = setInterval(() => {
+      setCaptureMessageIndex((i) => (i + 1) % LOADING_MESSAGES.length);
+    }, 2000);
+    return () => clearInterval(cycle);
+  }, [showCaptureLoading]);
 
   const startCamera = useCallback(async () => {
     setCameraError(null);
@@ -290,6 +304,38 @@ export default function UploadPanel({
     <div className="screen home-screen">
       {cameraActive && (
         <div className="capture-reference-overlay" role="dialog" aria-label="Capture Reference">
+          {showCaptureLoading && (
+            <div className="capture-loading-fullscreen" aria-hidden role="presentation">
+              <div
+                className="capture-loading-blob capture-loading-blob-tl"
+                style={{ background: SHAPES[captureShapeIndex % SHAPES.length]?.color ?? "#6B8CA8" }}
+              />
+              <div
+                className="capture-loading-blob capture-loading-blob-br"
+                style={{ background: "#c9a227" }}
+              />
+              <div className="capture-loading-content">
+                <SketchLoadingAnimation
+                  currentShapeIndex={captureShapeIndex}
+                  onShapeChange={setCaptureShapeIndex}
+                />
+                <div className="capture-loading-dots">
+                  {SHAPES.map((s, i) => (
+                    <div
+                      key={s.id}
+                      className={`capture-loading-dot ${i === captureShapeIndex ? "active" : ""}`}
+                      style={{
+                        background: i === captureShapeIndex ? s.color : "rgba(0, 0, 0, 0.2)"
+                      }}
+                    />
+                  ))}
+                </div>
+                <p className="capture-loading-message">
+                  {LOADING_MESSAGES[captureMessageIndex % LOADING_MESSAGES.length]}
+                </p>
+              </div>
+            </div>
+          )}
           <header className="capture-reference-header">
             <button
               type="button"
@@ -326,29 +372,6 @@ export default function UploadPanel({
               muted
               autoPlay
             />
-            {(outlineLoading || shadingLoading || captureWithGeminiLoading) && generatingPreviewUrl && (
-              <>
-                <img
-                  src={generatingPreviewUrl}
-                  alt=""
-                  className="capture-reference-preview capture-reference-generating-preview"
-                  aria-hidden
-                  decoding="async"
-                />
-                <div
-                  className="capture-reference-loading-overlay"
-                  aria-hidden
-                  role="presentation"
-                >
-                  <div className="capture-reference-loading-content">
-                    <span className="capture-reference-spinner" aria-hidden />
-                    <span className="capture-reference-loading-text">
-                      {captureWithGeminiLoading ? "Processing with AI…" : "Generating…"}
-                    </span>
-                  </div>
-                </div>
-              </>
-            )}
             {captureMode === "form" && outlineDataUrl && (
               <img
                 src={outlineDataUrl}
