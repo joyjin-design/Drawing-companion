@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import CompareView from "./components/CompareView";
+import CaptureReferenceOverlay from "./components/CaptureReferenceOverlay";
 import EvaluateView from "./components/EvaluateView";
 import Onboarding from "./components/Onboarding";
 import ReferenceView from "./components/ReferenceView";
@@ -92,7 +93,12 @@ type View = "home" | "reference" | "compare" | "evaluate" | "sessions";
 
 export default function App() {
   const [view, setView] = useState<View>("home");
+  const [onboardingJustDismissed, setOnboardingJustDismissed] = useState(false);
   const [startCameraAfterOnboarding, setStartCameraAfterOnboarding] = useState(false);
+  const [showCameraFromOnboarding, setShowCameraFromOnboarding] = useState(false);
+  const [cameraOpenedFromOnboarding, setCameraOpenedFromOnboarding] = useState(false);
+  const [triggerCameraWhenHomeVisible, setTriggerCameraWhenHomeVisible] = useState(false);
+  const [triggerGalleryWhenHomeVisible, setTriggerGalleryWhenHomeVisible] = useState(false);
   const [reference, setReference] = useState<ImageState | null>(null);
   const [drawing, setDrawing] = useState<ImageState | null>(null);
   const [compareMode, setCompareMode] = useState<CompareMode>("overlay");
@@ -420,32 +426,70 @@ export default function App() {
   const compareReady = useMemo(() => reference && drawing, [reference, drawing]);
 
   const hasSeen = hasSeenOnboarding(authUser);
-  const showOnboarding = !hasSeen;
-  // #region agent log
-  (() => {
-    fetch("http://127.0.0.1:7543/ingest/061dfdc9-29cb-4d00-8ed1-24635fe0b4c4", { method: "POST", headers: { "Content-Type": "application/json", "X-Debug-Session-Id": "c81602" }, body: JSON.stringify({ sessionId: "c81602", hypothesisId: "H4-H5", location: "App.tsx:showOnboarding", message: "onboarding visibility", data: { authUserId: authUser?.id ?? null, hasSeen, showOnboarding }, timestamp: Date.now() }) }).catch(() => {});
-  })();
-  // #endregion
+  const showOnboarding = !hasSeen && !onboardingJustDismissed;
+  const showOnboardingScreen = showOnboarding || cameraOpenedFromOnboarding;
 
   const handleOnboardingFinish = useCallback(() => {
+    setCameraOpenedFromOnboarding(false);
+    setOnboardingJustDismissed(true);
     setView("home");
   }, []);
 
   const handleOnboardingFinishAndStartCamera = useCallback(() => {
+    setCameraOpenedFromOnboarding(false);
     setView("home");
     setStartCameraAfterOnboarding(true);
   }, []);
 
+  const handleOnboardingTakePhotoRequest = useCallback(() => {
+    setCameraOpenedFromOnboarding(true);
+    setShowCameraFromOnboarding(true);
+  }, []);
+
+  const handleCameraFromOnboardingClose = useCallback(() => {
+    setShowCameraFromOnboarding(false);
+  }, []);
+
+  const handleCameraFromOnboardingReference = useCallback(
+    (file: File, source?: "outline" | "shading") => {
+      handleReference(file, source);
+      setCameraOpenedFromOnboarding(false);
+      setShowCameraFromOnboarding(false);
+      setOnboardingJustDismissed(true);
+      setView("home");
+    },
+    [handleReference]
+  );
+
+  const handleOnboardingUploadGalleryRequest = useCallback(() => {
+    setCameraOpenedFromOnboarding(false);
+    setOnboardingJustDismissed(true);
+    setView("home");
+    setTriggerGalleryWhenHomeVisible(true);
+  }, []);
+
   useEffect(() => {
     if (!startCameraAfterOnboarding || view !== "home") return;
+    let retryId: ReturnType<typeof setTimeout> | undefined;
     const t = setTimeout(() => {
-      referenceCameraInputRef.current?.click();
-      setStartCameraAfterOnboarding(false);
+      if (referenceCameraInputRef.current) {
+        referenceCameraInputRef.current.click();
+        setStartCameraAfterOnboarding(false);
+        return;
+      }
+      retryId = setTimeout(() => {
+        referenceCameraInputRef.current?.click();
+        setStartCameraAfterOnboarding(false);
+      }, 50);
     }, 0);
-    return () => clearTimeout(t);
+    return () => {
+      clearTimeout(t);
+      if (retryId !== undefined) clearTimeout(retryId);
+    };
   }, [startCameraAfterOnboarding, view]);
 
   const handleOnboardingLogIn = useCallback(() => {
+    setCameraOpenedFromOnboarding(false);
     setView("sessions");
   }, []);
 
@@ -454,20 +498,24 @@ export default function App() {
       <div className="device-shell">
         <div className="device-notch" />
         <div className="device-screen">
-          {(() => {
-            // #region agent log
-            fetch("http://127.0.0.1:7543/ingest/061dfdc9-29cb-4d00-8ed1-24635fe0b4c4", { method: "POST", headers: { "Content-Type": "application/json", "X-Debug-Session-Id": "c81602" }, body: JSON.stringify({ sessionId: "c81602", hypothesisId: "H4", location: "App.tsx:render", message: "render branch", data: { showOnboarding, rendering: showOnboarding ? "Onboarding" : "main" }, timestamp: Date.now() }) }).catch(() => {});
-            // #endregion
-            return showOnboarding;
-          })() ? (
+          {showCameraFromOnboarding && (
+            <CaptureReferenceOverlay
+              open={showCameraFromOnboarding}
+              onClose={handleCameraFromOnboardingClose}
+              onReferenceSelected={handleCameraFromOnboardingReference}
+            />
+          )}
+          {showOnboardingScreen ? (
             <Onboarding
               onFinish={handleOnboardingFinish}
               onLogIn={handleOnboardingLogIn}
               onFinishAndStartCamera={handleOnboardingFinishAndStartCamera}
+              onTakePhotoRequest={handleOnboardingTakePhotoRequest}
+              onUploadFromGalleryRequest={handleOnboardingUploadGalleryRequest}
               authUserId={authUser?.id ?? null}
             />
           ) : (
-            <>
+            <div className="device-screen-main" style={{ display: "flex", flexDirection: "column" }}>
           {view === "home" && (
             <UploadPanel
               referenceUrl={reference?.url}
@@ -477,6 +525,10 @@ export default function App() {
               onReferenceSelected={handleReference}
               onDrawingSelected={handleDrawing}
               onOpenSessions={() => setView("sessions")}
+              triggerCameraOnMount={triggerCameraWhenHomeVisible}
+              triggerGalleryOnMount={triggerGalleryWhenHomeVisible}
+              onTriggerCameraDone={() => setTriggerCameraWhenHomeVisible(false)}
+              onTriggerGalleryDone={() => setTriggerGalleryWhenHomeVisible(false)}
             />
           )}
 
@@ -546,7 +598,7 @@ export default function App() {
             />
           )}
 
-            </>
+            </div>
           )}
 
           <input

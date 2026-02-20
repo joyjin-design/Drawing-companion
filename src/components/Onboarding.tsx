@@ -31,9 +31,6 @@ export function hasSeenOnboarding(authUser: { id: string } | null): boolean {
     rawValue = sessionStorage.getItem(keyUsed);
     result = rawValue === "1";
   }
-  // #region agent log
-  fetch("http://127.0.0.1:7543/ingest/061dfdc9-29cb-4d00-8ed1-24635fe0b4c4", { method: "POST", headers: { "Content-Type": "application/json", "X-Debug-Session-Id": "c81602" }, body: JSON.stringify({ sessionId: "c81602", hypothesisId: "H1-H3", location: "Onboarding.tsx:hasSeenOnboarding", message: "hasSeenOnboarding", data: { authUserId: authUser?.id ?? null, keyUsed, rawValue, result }, timestamp: Date.now() }) }).catch(() => {});
-  // #endregion
   return result;
 }
 
@@ -41,10 +38,12 @@ export type OnboardingProps = {
   onFinish: () => void;
   onLogIn: () => void;
   onFinishAndStartCamera?: () => void;
+  onTakePhotoRequest?: () => void;
+  onUploadFromGalleryRequest?: () => void;
   authUserId?: string | null;
 };
 
-export default function Onboarding({ onFinish, onLogIn, onFinishAndStartCamera, authUserId = null }: OnboardingProps) {
+export default function Onboarding({ onFinish, onLogIn, onFinishAndStartCamera, onTakePhotoRequest, onUploadFromGalleryRequest, authUserId = null }: OnboardingProps) {
   const [step, setStep] = useState<0 | 1 | 2 | 3>(0);
 
   const handleSkip = () => {
@@ -68,15 +67,6 @@ export default function Onboarding({ onFinish, onLogIn, onFinishAndStartCamera, 
     if (step === 1) setStep(2);
     else if (step === 2) setStep(3);
   };
-  const handleGetStartedFinal = () => {
-    setOnboardingDone(authUserId ?? undefined);
-    if (onFinishAndStartCamera) {
-      onFinishAndStartCamera();
-    } else {
-      onFinish();
-    }
-  };
-
   return (
     <div className="onboarding">
       {step === 0 ? (
@@ -301,9 +291,23 @@ export default function Onboarding({ onFinish, onLogIn, onFinishAndStartCamera, 
                 <button
                   type="button"
                   className="onboarding-btn-primary"
-                  onClick={handleGetStartedFinal}
+                  onClick={() => {
+                    setOnboardingDone(authUserId ?? undefined);
+                    onTakePhotoRequest?.();
+                  }}
                 >
-                  Try it now
+                  Take a photo to draw
+                </button>
+                <button
+                  type="button"
+                  className="onboarding-skip"
+                  onClick={() => {
+                    setOnboardingDone(authUserId ?? undefined);
+                    onFinish();
+                    onUploadFromGalleryRequest?.();
+                  }}
+                >
+                  Upload from Gallery
                 </button>
               </div>
             </>
