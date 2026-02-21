@@ -1,3 +1,5 @@
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faArrowLeft } from "@fortawesome/free-solid-svg-icons";
 import ProgressiveImage from "./ProgressiveImage";
 
 export type ReferenceViewProps = {
@@ -24,7 +26,7 @@ export default function ReferenceView({
           onClick={onBack}
           aria-label="Back"
         >
-          ←
+          <FontAwesomeIcon icon={faArrowLeft} style={{ fontSize: 24 }} aria-hidden />
         </button>
         <h1 className="reference-screen-title">Reference</h1>
         <div style={{ width: 44, height: 44 }} aria-hidden />
