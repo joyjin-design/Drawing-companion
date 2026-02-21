@@ -298,17 +298,19 @@ export default function Onboarding({ onFinish, onLogIn, onFinishAndStartCamera, 
                 >
                   Take a photo to draw
                 </button>
-                <button
-                  type="button"
-                  className="onboarding-skip"
-                  onClick={() => {
-                    setOnboardingDone(authUserId ?? undefined);
-                    onFinish();
-                    onUploadFromGalleryRequest?.();
-                  }}
-                >
-                  Upload from Gallery
-                </button>
+                {false && (
+                  <button
+                    type="button"
+                    className="onboarding-skip"
+                    onClick={() => {
+                      setOnboardingDone(authUserId ?? undefined);
+                      onFinish();
+                      onUploadFromGalleryRequest?.();
+                    }}
+                  >
+                    Upload from Gallery
+                  </button>
+                )}
               </div>
             </>
           )}

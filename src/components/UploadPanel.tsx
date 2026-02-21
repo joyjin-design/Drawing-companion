@@ -154,6 +154,7 @@ export default function UploadPanel({
           >
             Take a photo to draw
           </button>
+          {false && (
           <button
             className="secondary-button"
             type="button"
@@ -161,6 +162,7 @@ export default function UploadPanel({
           >
             Upload from Gallery
           </button>
+          )}
         </section>
       </section>
     </div>

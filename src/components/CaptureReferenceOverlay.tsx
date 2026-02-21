@@ -9,12 +9,14 @@ export type CaptureReferenceOverlayProps = {
   open: boolean;
   onClose: () => void;
   onReferenceSelected: (file: File, source?: "outline" | "shading") => void;
+  variant?: "reference" | "drawing";
 };
 
 export default function CaptureReferenceOverlay({
   open,
   onClose,
-  onReferenceSelected
+  onReferenceSelected,
+  variant = "reference"
 }: CaptureReferenceOverlayProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -75,6 +77,9 @@ export default function CaptureReferenceOverlay({
       stopCamera();
       return;
     }
+    // #region agent log
+    fetch('http://127.0.0.1:7543/ingest/061dfdc9-29cb-4d00-8ed1-24635fe0b4c4',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'41d973'},body:JSON.stringify({sessionId:'41d973',location:'CaptureReferenceOverlay.tsx:open',message:'overlay open, requesting camera',data:{open,variant},timestamp:Date.now(),hypothesisId:'H_scan_open'})}).catch(()=>{});
+    // #endregion
     let cancelled = false;
     setCameraError(null);
     setStreamReady(false);
@@ -89,12 +94,18 @@ export default function CaptureReferenceOverlay({
           stream.getTracks().forEach((t) => t.stop());
           return;
         }
+        // #region agent log
+        fetch('http://127.0.0.1:7543/ingest/061dfdc9-29cb-4d00-8ed1-24635fe0b4c4',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'41d973'},body:JSON.stringify({sessionId:'41d973',location:'CaptureReferenceOverlay.tsx:getUserMedia',message:'camera stream ready',data:{},timestamp:Date.now(),hypothesisId:'H_scan_camera_ok'})}).catch(()=>{});
+        // #endregion
         streamRef.current = stream;
         setStreamReady(true);
         setCaptureMode("form");
       })
       .catch((err) => {
         if (!cancelled) {
+          // #region agent log
+          fetch('http://127.0.0.1:7543/ingest/061dfdc9-29cb-4d00-8ed1-24635fe0b4c4',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'41d973'},body:JSON.stringify({sessionId:'41d973',location:'CaptureReferenceOverlay.tsx:getUserMedia',message:'camera error',data:{error:String(err?.message ?? err)},timestamp:Date.now(),hypothesisId:'H_scan_camera_err'})}).catch(()=>{});
+          // #endregion
           setCameraError(
             err instanceof Error ? err.message : "Could not access camera"
           );
@@ -118,6 +129,13 @@ export default function CaptureReferenceOverlay({
     }
     video.srcObject = streamRef.current;
     video.play().catch(() => {});
+
+    if (variant !== "reference") {
+      return () => {
+        streamRef.current?.getTracks().forEach((t) => t.stop());
+        streamRef.current = null;
+      };
+    }
 
     outlineTriggerCleanupRef.current = null;
     const deferredId = setTimeout(() => {
@@ -182,7 +200,7 @@ export default function CaptureReferenceOverlay({
       streamRef.current?.getTracks().forEach((t) => t.stop());
       streamRef.current = null;
     };
-  }, [streamReady]);
+  }, [streamReady, variant]);
 
   const captureFrameAsBase64 = useCallback((): Promise<string> => {
     return new Promise((resolve, reject) => {
@@ -359,6 +377,11 @@ export default function CaptureReferenceOverlay({
       );
     };
 
+    if (variant === "drawing") {
+      usePhotoFallback();
+      return;
+    }
+
     if (captureMode === "colors") {
       usePhotoFallback();
       return;
@@ -414,6 +437,7 @@ export default function CaptureReferenceOverlay({
 
     usePhotoFallback();
   }, [
+    variant,
     captureMode,
     captureWithGeminiLoading,
     captureFrameAsDataUrl,
@@ -425,7 +449,7 @@ export default function CaptureReferenceOverlay({
   if (!open) return null;
 
   return (
-    <div className="capture-reference-overlay" role="dialog" aria-label="Capture Reference">
+    <div className="capture-reference-overlay" role="dialog" aria-label={variant === "drawing" ? "Capture drawing" : "Capture Reference"}>
       {open && !streamReady && !cameraError && (
         <div className="camera-loading-screen" aria-live="polite">
           <div className="camera-loading-screen-spinner" aria-hidden />
@@ -485,11 +509,13 @@ export default function CaptureReferenceOverlay({
             >
               <FontAwesomeIcon icon={faArrowLeft} aria-hidden />
             </button>
-            <h2 className="capture-reference-title">Capture Reference</h2>
+            <h2 className="capture-reference-title">{variant === "drawing" ? "Capture drawing" : "Capture Reference"}</h2>
+            {/* Flash button hidden until torch API is wired up */}
             <button
               type="button"
               className="capture-reference-flash"
               aria-label="Flash"
+              style={{ display: "none" }}
             >
               ✦
             </button>
@@ -566,56 +592,60 @@ export default function CaptureReferenceOverlay({
           </div>
 
           <div className="capture-reference-controls">
-            <div className="capture-reference-modes">
-              <button
-                type="button"
-                className={`capture-reference-mode-btn ${captureMode === "colors" ? "active" : ""}`}
-                onClick={() => {
-                  setCaptureMode("colors");
-                  setOutlineDataUrl(null);
-                  setShadingDataUrl(null);
-                  setOutlineError(null);
-                  setShadingError(null);
-                  setCaptureWithGeminiError(null);
-                }}
-                aria-pressed={captureMode === "colors"}
-              >
-                <span className="mode-icon" aria-hidden />
-                <span>Colors</span>
-              </button>
-              <button
-                type="button"
-                className={`capture-reference-mode-btn ${captureMode === "form" ? "active" : ""}`}
-                onClick={() => {
-                  setCaptureMode("form");
-                  setShadingDataUrl(null);
-                  setShadingError(null);
-                  setOutlineError(null);
-                  setCaptureWithGeminiError(null);
-                  getOutline();
-                }}
-                aria-pressed={captureMode === "form"}
-              >
-                <span className="mode-icon mode-form" aria-hidden />
-                <span>Outline</span>
-              </button>
-              <button
-                type="button"
-                className={`capture-reference-mode-btn ${captureMode === "shading" ? "active" : ""}`}
-                onClick={() => {
-                  setCaptureMode("shading");
-                  setOutlineDataUrl(null);
-                  setOutlineError(null);
-                  setShadingError(null);
-                  setCaptureWithGeminiError(null);
-                  getShading();
-                }}
-                aria-pressed={captureMode === "shading"}
-              >
-                <span className="mode-icon mode-shading" aria-hidden />
-                <span>Shading</span>
-              </button>
-            </div>
+            {variant === "reference" && (
+              <div className="capture-reference-modes">
+                {/* Colors mode hidden for now */}
+                <button
+                  type="button"
+                  className={`capture-reference-mode-btn ${captureMode === "colors" ? "active" : ""}`}
+                  onClick={() => {
+                    setCaptureMode("colors");
+                    setOutlineDataUrl(null);
+                    setShadingDataUrl(null);
+                    setOutlineError(null);
+                    setShadingError(null);
+                    setCaptureWithGeminiError(null);
+                  }}
+                  aria-pressed={captureMode === "colors"}
+                  style={{ display: "none" }}
+                >
+                  <span className="mode-icon" aria-hidden />
+                  <span>Colors</span>
+                </button>
+                <button
+                  type="button"
+                  className={`capture-reference-mode-btn ${captureMode === "form" ? "active" : ""}`}
+                  onClick={() => {
+                    setCaptureMode("form");
+                    setShadingDataUrl(null);
+                    setShadingError(null);
+                    setOutlineError(null);
+                    setCaptureWithGeminiError(null);
+                    getOutline();
+                  }}
+                  aria-pressed={captureMode === "form"}
+                >
+                  <span className="mode-icon mode-form" aria-hidden />
+                  <span>Outline</span>
+                </button>
+                <button
+                  type="button"
+                  className={`capture-reference-mode-btn ${captureMode === "shading" ? "active" : ""}`}
+                  onClick={() => {
+                    setCaptureMode("shading");
+                    setOutlineDataUrl(null);
+                    setOutlineError(null);
+                    setShadingError(null);
+                    setCaptureWithGeminiError(null);
+                    getShading();
+                  }}
+                  aria-pressed={captureMode === "shading"}
+                >
+                  <span className="mode-icon mode-shading" aria-hidden />
+                  <span>Shading</span>
+                </button>
+              </div>
+            )}
             <button
               type="button"
               className="capture-reference-capture-btn"

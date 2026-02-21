@@ -97,6 +97,7 @@ export default function App() {
   const [startCameraAfterOnboarding, setStartCameraAfterOnboarding] = useState(false);
   const [showCameraFromOnboarding, setShowCameraFromOnboarding] = useState(false);
   const [cameraOpenedFromOnboarding, setCameraOpenedFromOnboarding] = useState(false);
+  const [showDrawingCameraFromReference, setShowDrawingCameraFromReference] = useState(false);
   const [triggerCameraWhenHomeVisible, setTriggerCameraWhenHomeVisible] = useState(false);
   const [triggerGalleryWhenHomeVisible, setTriggerGalleryWhenHomeVisible] = useState(false);
   const [reference, setReference] = useState<ImageState | null>(null);
@@ -120,10 +121,16 @@ export default function App() {
   const [authLoading, setAuthLoading] = useState(true);
   const [syncError, setSyncError] = useState<string | null>(null);
 
+  // #region agent log
+  useEffect(() => {
+    fetch('http://127.0.0.1:7543/ingest/061dfdc9-29cb-4d00-8ed1-24635fe0b4c4',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'41d973'},body:JSON.stringify({sessionId:'41d973',location:'App.tsx:state',message:'showDrawingCameraFromReference',data:{showDrawingCameraFromReference},timestamp:Date.now(),hypothesisId:'H_scan_state'})}).catch(()=>{});
+  }, [showDrawingCameraFromReference]);
+  // #endregion
+
   const referenceInputRef = useRef<HTMLInputElement>(null);
   const referenceCameraInputRef = useRef<HTMLInputElement>(null);
   const drawingInputRef = useRef<HTMLInputElement>(null);
-
+  const drawingCameraInputRef = useRef<HTMLInputElement>(null);
   const refreshSessions = useCallback(async () => {
     const all = await listSessions();
     setSessions(all.sort((a, b) => b.updatedAt - a.updatedAt));
@@ -505,6 +512,26 @@ export default function App() {
               onReferenceSelected={handleCameraFromOnboardingReference}
             />
           )}
+          {showDrawingCameraFromReference && (
+            <CaptureReferenceOverlay
+              open={showDrawingCameraFromReference}
+              onClose={() => {
+                // #region agent log
+                fetch('http://127.0.0.1:7543/ingest/061dfdc9-29cb-4d00-8ed1-24635fe0b4c4',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'41d973'},body:JSON.stringify({sessionId:'41d973',location:'App.tsx:onClose',message:'drawing overlay onClose called',data:{},timestamp:Date.now(),hypothesisId:'H_scan_close'})}).catch(()=>{});
+                // #endregion
+                setShowDrawingCameraFromReference(false);
+              }}
+              onReferenceSelected={async (file) => {
+                // #region agent log
+                fetch('http://127.0.0.1:7543/ingest/061dfdc9-29cb-4d00-8ed1-24635fe0b4c4',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'41d973'},body:JSON.stringify({sessionId:'41d973',location:'App.tsx:onReferenceSelected',message:'drawing overlay onReferenceSelected called',data:{fileName:file?.name},timestamp:Date.now(),hypothesisId:'H_scan_close'})}).catch(()=>{});
+                // #endregion
+                await handleDrawing(file);
+                setShowDrawingCameraFromReference(false);
+                setView("compare");
+              }}
+              variant="drawing"
+            />
+          )}
           {showOnboardingScreen ? (
             <Onboarding
               onFinish={handleOnboardingFinish}
@@ -537,8 +564,8 @@ export default function App() {
               referenceUrl={reference.url}
               referencePreviewUrl={reference.previewUrl ?? null}
               onBack={() => setView("home")}
-              onScanSketch={() => referenceCameraInputRef.current?.click()}
-              onUploadFromGallery={() => referenceInputRef.current?.click()}
+              onScanSketch={() => setShowDrawingCameraFromReference(true)}
+              onUploadFromGallery={() => drawingInputRef.current?.click()}
             />
           )}
 
@@ -556,9 +583,7 @@ export default function App() {
               onChangeGuides={setGuides}
               onResetAlignment={resetAlignment}
               onBack={() => setView("home")}
-              onOpenSessions={() => setView("sessions")}
               onAddReference={() => referenceInputRef.current?.click()}
-              onAddDrawing={() => drawingInputRef.current?.click()}
               onEvaluate={() => setView("evaluate")}
             />
           )}
@@ -627,6 +652,17 @@ export default function App() {
             className="file-input"
             type="file"
             accept="image/*"
+            onChange={(event) => {
+              const file = event.target.files?.[0];
+              if (file) handleDrawing(file);
+            }}
+          />
+          <input
+            ref={drawingCameraInputRef}
+            className="file-input"
+            type="file"
+            accept="image/*"
+            capture="environment"
             onChange={(event) => {
               const file = event.target.files?.[0];
               if (file) handleDrawing(file);

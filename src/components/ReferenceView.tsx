@@ -27,26 +27,7 @@ export default function ReferenceView({
           ←
         </button>
         <h1 className="reference-screen-title">Reference</h1>
-        <button
-          type="button"
-          className="reference-screen-upload"
-          onClick={onUploadFromGallery}
-          aria-label="Upload from Gallery"
-        >
-          <svg
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            aria-hidden
-          >
-            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-            <polyline points="17 8 12 3 7 8" />
-            <line x1="12" y1="3" x2="12" y2="15" />
-          </svg>
-        </button>
+        <div style={{ width: 44, height: 44 }} aria-hidden />
       </header>
 
       <section className="reference-image-area">
@@ -62,7 +43,12 @@ export default function ReferenceView({
         <button
           type="button"
           className="reference-actions-primary"
-          onClick={onScanSketch}
+          onClick={() => {
+            // #region agent log
+            fetch('http://127.0.0.1:7543/ingest/061dfdc9-29cb-4d00-8ed1-24635fe0b4c4',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'41d973'},body:JSON.stringify({sessionId:'41d973',location:'ReferenceView.tsx:click',message:'Scan my sketch clicked',data:{},timestamp:Date.now(),hypothesisId:'H_scan_click'})}).catch(()=>{});
+            // #endregion
+            onScanSketch();
+          }}
         >
           Scan my sketch
         </button>

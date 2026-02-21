@@ -1,4 +1,13 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import {
+  faArrowRotateRight,
+  faArrowLeft,
+  faDownload,
+  faCircleCheck,
+  faMinus,
+  faArrowUp,
+} from "@fortawesome/free-solid-svg-icons";
 import { evaluateDrawing } from "../gemini";
 import type { OverlaySettings } from "../types";
 import ProgressiveImage from "./ProgressiveImage";
@@ -102,11 +111,16 @@ export default function EvaluateView({
   const [rawText, setRawText] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [expandedCards, setExpandedCards] = useState<Set<number>>(new Set([0, 1, 2]));
 
-  const drawingTransform = useMemo(() => {
-    const { scale, rotation, translateX, translateY } = overlaySettings;
-    return `translate(${translateX}px, ${translateY}px) scale(${scale}) rotate(${rotation}deg)`;
-  }, [overlaySettings]);
+  const toggleCard = (i: number) => {
+    setExpandedCards((prev) => {
+      const next = new Set(prev);
+      if (next.has(i)) next.delete(i);
+      else next.add(i);
+      return next;
+    });
+  };
 
   useEffect(() => {
     if (!referenceUrl || !drawingUrl) {
@@ -170,41 +184,55 @@ export default function EvaluateView({
     <div className="screen evaluate-screen">
       <header className="top-bar">
         <button type="button" className="icon-button" onClick={onBack} aria-label="Back">
-          ←
+          <FontAwesomeIcon icon={faArrowLeft} aria-hidden />
         </button>
-        <h2 className="evaluate-title">Evaluation</h2>
-        <div className="icon-button" style={{ visibility: "hidden" }} aria-hidden>
-          ⋯
-        </div>
+        <h2 className="evaluate-title">Tips & analysis</h2>
+        {onSaveToGallery ? (
+          <button
+            type="button"
+            className="icon-button"
+            onClick={onSaveToGallery}
+            aria-label="Save to gallery"
+          >
+            <FontAwesomeIcon icon={faDownload} aria-hidden />
+          </button>
+        ) : (
+          <div className="icon-button" style={{ visibility: "hidden" }} aria-hidden>
+            ⋯
+          </div>
+        )}
       </header>
 
       <section className="evaluate-content">
         <p className="evaluate-compare-caption">Comparing your reference to your drawing.</p>
-        <div className="evaluate-preview">
-          {referenceUrl && (
-            <ProgressiveImage
-              src={referenceUrl}
-              previewUrl={referencePreviewUrl}
-              alt="Reference"
-              className="evaluate-preview-base"
-              decoding="async"
-              fetchPriority="high"
-            />
-          )}
-          {drawingUrl && (
-            <ProgressiveImage
-              src={drawingUrl}
-              previewUrl={drawingPreviewUrl}
-              alt="Drawing"
-              className="evaluate-preview-drawing"
-              decoding="async"
-              fetchPriority="high"
-              style={{
-                opacity: overlaySettings.opacity,
-                transform: drawingTransform
-              }}
-            />
-          )}
+        <div className="evaluate-compare-card">
+          <div className="evaluate-compare-left">
+            <span className="compare-pane-tag reference-tag" aria-hidden>REFERENCE</span>
+            {referenceUrl && (
+              <ProgressiveImage
+                src={referenceUrl}
+                previewUrl={referencePreviewUrl}
+                alt="Reference"
+                className="evaluate-compare-image"
+                decoding="async"
+                fetchPriority="high"
+              />
+            )}
+          </div>
+          <div className="evaluate-compare-divider" aria-hidden />
+          <div className="evaluate-compare-right">
+            <span className="compare-pane-tag drawing-tag" aria-hidden>DRAWING</span>
+            {drawingUrl && (
+              <ProgressiveImage
+                src={drawingUrl}
+                previewUrl={drawingPreviewUrl}
+                alt="Drawing"
+                className="evaluate-compare-image"
+                decoding="async"
+                fetchPriority="high"
+              />
+            )}
+          </div>
         </div>
 
         {loading && (
@@ -236,60 +264,62 @@ export default function EvaluateView({
 
         {display && !loading && !error && (
           <>
-            <div className="evaluate-achievement">
-              <div className="evaluate-achievement-icon" aria-hidden>
-                🏅
+            <div className="evaluate-accuracy-block">
+              <div className="evaluate-accuracy-circle">
+                <span className="evaluate-accuracy-value">{growthPercent}%</span>
+                <span className="evaluate-accuracy-label">ACCURACY</span>
               </div>
-              <h3 className="evaluate-achievement-title">{display.title}</h3>
-              <p className="evaluate-achievement-subtitle">
-                {display.subtitle} 🌱
-              </p>
-            </div>
-
-            <div className="evaluate-growth-card">
-              <div className="evaluate-growth-header">
-                <div className="evaluate-growth-heading">
-                  <span className="evaluate-growth-icon" aria-hidden>📈</span>
-                  <span>Growth Meter</span>
-                </div>
-                <div className="evaluate-growth-stars" aria-hidden>
-                  <span className="star filled">★</span>
-                  <span className="star filled">★</span>
-                  <span className="star">★</span>
-                </div>
-              </div>
-              <p className="evaluate-growth-desc">Your improvement trend is looking great!</p>
-              <div className="evaluate-growth-bar-wrap">
-                <div
-                  className="evaluate-growth-bar-fill"
-                  style={{ width: `${growthPercent}%` }}
-                >
-                  <span className="evaluate-growth-bar-label">{growthPercent}% Growth</span>
-                </div>
-              </div>
+              <h3 className="evaluate-progress-title">{display.title}</h3>
+              <p className="evaluate-progress-subtitle">{display.subtitle}</p>
             </div>
 
             {showHighlightsSection && (
-              <div className="evaluate-highlights">
-                <h4 className="evaluate-highlights-title">Feedback Highlights</h4>
-                <div className="evaluate-highlights-list">
-                  {highlights.map((h, i) => (
-                    <div key={i} className="evaluate-highlight-card">
+              <div className="evaluate-detailed-analysis">
+                <h4 className="evaluate-detailed-analysis-title">DETAILED ANALYSIS</h4>
+                <div className="evaluate-metric-cards">
+                  {highlights.map((h, i) => {
+                    const pct = i === 0 ? growthPercent : i === 1 ? Math.min(100, growthPercent + 5) : Math.max(0, growthPercent - 4);
+                    const barVariant = i === 0 ? "green" : i === 1 ? "gray" : "orange";
+                    const isExpanded = expandedCards.has(i);
+                    return (
                       <div
-                        className="evaluate-highlight-icon"
-                        style={{
-                          background: HIGHLIGHT_GRADIENTS[h.category] ?? "var(--primary)"
+                        key={i}
+                        className={`evaluate-metric-card ${isExpanded ? "expanded" : ""}`}
+                        role="button"
+                        tabIndex={0}
+                        aria-expanded={isExpanded}
+                        onClick={() => toggleCard(i)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" || e.key === " ") {
+                            e.preventDefault();
+                            toggleCard(i);
+                          }
                         }}
-                        aria-hidden
                       >
-                        {HIGHLIGHT_ICONS[h.category] ?? "•"}
+                        <div className={`evaluate-metric-icon evaluate-metric-icon-${barVariant}`} aria-hidden>
+                          <FontAwesomeIcon
+                            icon={i === 0 ? faCircleCheck : i === 1 ? faMinus : faArrowUp}
+                            aria-hidden
+                          />
+                        </div>
+                        <div className="evaluate-metric-body">
+                          <h5 className="evaluate-metric-title">{h.category}</h5>
+                          <p className="evaluate-metric-subtitle">{h.feedback}</p>
+                          <div className="evaluate-metric-bar-wrap">
+                            <div
+                              className={`evaluate-metric-bar-fill evaluate-metric-bar-${barVariant}`}
+                              style={{ width: `${pct}%` }}
+                              role="progressbar"
+                              aria-valuenow={pct}
+                              aria-valuemin={0}
+                              aria-valuemax={100}
+                            />
+                          </div>
+                        </div>
+                        <span className="evaluate-metric-pct">{pct}%</span>
                       </div>
-                      <div className="evaluate-highlight-body">
-                        <h5 className="evaluate-highlight-category">{h.category}</h5>
-                        <p className="evaluate-highlight-feedback">{h.feedback}</p>
-                      </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
             )}
@@ -300,7 +330,7 @@ export default function EvaluateView({
                 className="primary-button evaluate-btn-practice"
                 onClick={onBack}
               >
-                <span className="evaluate-btn-icon" aria-hidden>↻</span>
+                <FontAwesomeIcon icon={faArrowRotateRight} className="evaluate-btn-icon" aria-hidden />
                 Practice Again
               </button>
               {onSaveToGallery && (
@@ -309,7 +339,6 @@ export default function EvaluateView({
                   className="secondary-button evaluate-btn-save"
                   onClick={onSaveToGallery}
                 >
-                  <span className="evaluate-btn-icon" aria-hidden>🖼</span>
                   Save to Gallery
                 </button>
               )}

@@ -104,45 +104,7 @@ export default function SessionList({
                 </button>
               </div>
             </div>
-          ) : (
-            <div className="cloud-sign-in">
-              <p className="cloud-status">Sign in to back up sessions to the cloud.</p>
-              <form onSubmit={handleAuthSubmit} className="cloud-form">
-                <input
-                  type="email"
-                  placeholder="Email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  autoComplete="email"
-                  className="cloud-input"
-                />
-                <input
-                  type="password"
-                  placeholder="Password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  autoComplete={authMode === "signin" ? "current-password" : "new-password"}
-                  className="cloud-input"
-                />
-                <div className="cloud-form-actions">
-                  <button
-                    type="submit"
-                    className="mini-button primary"
-                    disabled={cloudBusy || !email.trim() || !password}
-                  >
-                    {cloudBusy ? "…" : authMode === "signin" ? "Sign in" : "Sign up"}
-                  </button>
-                  <button
-                    type="button"
-                    className="mini-button ghost"
-                    onClick={() => setAuthMode((m) => (m === "signin" ? "signup" : "signin"))}
-                  >
-                    {authMode === "signin" ? "Sign up" : "Sign in"}
-                  </button>
-                </div>
-              </form>
-            </div>
-          )}
+          ) : null}
           {syncError && (
             <p className="cloud-error" role="alert">
               {syncError}

@@ -41,7 +41,7 @@ export default function ProgressiveImage({
         src={src}
         alt={alt}
         decoding={decoding}
-        fetchPriority={fetchPriority}
+        {...(fetchPriority != null ? { fetchpriority: fetchPriority } : {})}
         className={`progressive-image-full ${loaded ? "loaded" : ""}`.trim()}
         style={style}
         onLoad={() => setLoaded(true)}

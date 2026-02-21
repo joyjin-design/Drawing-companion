@@ -1,5 +1,7 @@
 import { useMemo, useRef, useState } from "react";
 import type React from "react";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faArrowLeft } from "@fortawesome/free-solid-svg-icons";
 import ProgressiveImage from "./ProgressiveImage";
 import type { CompareMode, Guides, OverlaySettings } from "../types";
 
@@ -16,9 +18,7 @@ export type CompareViewProps = {
   onChangeGuides: (next: Guides) => void;
   onResetAlignment: () => void;
   onBack: () => void;
-  onOpenSessions: () => void;
   onAddReference: () => void;
-  onAddDrawing: () => void;
   onEvaluate?: () => void;
 };
 
@@ -35,13 +35,16 @@ export default function CompareView({
   onChangeGuides,
   onResetAlignment,
   onBack,
-  onOpenSessions,
   onAddReference,
-  onAddDrawing,
   onEvaluate
 }: CompareViewProps) {
   const [sliderValue, setSliderValue] = useState(50);
+  const [splitOrientation, setSplitOrientation] = useState<"horizontal" | "vertical">("horizontal");
   const sliderTrackRef = useRef<HTMLDivElement>(null);
+  const handleDragRef = useRef(false);
+  const handleDidMoveRef = useRef(false);
+  const lastTapRef = useRef(0);
+  const compareScreenRef = useRef<HTMLDivElement>(null);
 
   const updateSliderFromClientX = (clientX: number) => {
     const el = sliderTrackRef.current;
@@ -52,16 +55,30 @@ export default function CompareView({
     setSliderValue(pct);
   };
 
+  const updateSliderFromClientY = (clientY: number) => {
+    const el = sliderTrackRef.current;
+    if (!el) return;
+    const rect = el.getBoundingClientRect();
+    const y = clientY - rect.top;
+    const pct = Math.max(0, Math.min(100, (y / rect.height) * 100));
+    setSliderValue(pct);
+  };
+
+  const updateSliderFromPointer = (clientX: number, clientY: number) => {
+    if (splitOrientation === "horizontal") updateSliderFromClientX(clientX);
+    else updateSliderFromClientY(clientY);
+  };
+
   const handleSliderPointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
     if (compareMode !== "slider") return;
     event.currentTarget.setPointerCapture(event.pointerId);
-    updateSliderFromClientX(event.clientX);
+    updateSliderFromPointer(event.clientX, event.clientY);
   };
 
   const handleSliderPointerMove = (event: React.PointerEvent<HTMLDivElement>) => {
     if (compareMode !== "slider") return;
     if (event.buttons !== 1) return;
-    updateSliderFromClientX(event.clientX);
+    updateSliderFromPointer(event.clientX, event.clientY);
   };
 
   const handleSliderKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
@@ -80,6 +97,42 @@ export default function CompareView({
       event.preventDefault();
       setSliderValue(100);
     }
+  };
+
+  const handleSliderHandlePointerDown = (event: React.PointerEvent) => {
+    if (compareMode !== "slider") return;
+    event.stopPropagation();
+    handleDragRef.current = true;
+    handleDidMoveRef.current = false;
+    (event.target as HTMLElement).setPointerCapture(event.pointerId);
+    updateSliderFromPointer(event.clientX, event.clientY);
+  };
+
+  const handleSliderHandlePointerMove = (event: React.PointerEvent) => {
+    if (!handleDragRef.current) return;
+    handleDidMoveRef.current = true;
+    updateSliderFromPointer(event.clientX, event.clientY);
+  };
+
+  const handleSliderHandlePointerUp = (event: React.PointerEvent) => {
+    if (compareMode !== "slider") return;
+    const now = Date.now();
+    const delta = now - lastTapRef.current;
+    const wasQuickTap = !handleDidMoveRef.current && delta > 0 && delta < 400;
+    lastTapRef.current = now;
+    handleDragRef.current = false;
+    try {
+      (event.target as HTMLElement).releasePointerCapture(event.pointerId);
+    } catch {
+      // ignore
+    }
+    if (wasQuickTap) {
+      setSplitOrientation((o) => (o === "horizontal" ? "vertical" : "horizontal"));
+    }
+  };
+
+  const handleSliderHandleDoubleClick = () => {
+    setSplitOrientation((o) => (o === "horizontal" ? "vertical" : "horizontal"));
   };
 
   const dragState = useRef<{
@@ -204,42 +257,20 @@ export default function CompareView({
   };
 
   return (
-    <div className="screen compare-screen">
+    <div ref={compareScreenRef} className="screen compare-screen">
       <header className="top-bar">
-        <button className="icon-button" type="button" onClick={onBack}>
-          ←
-        </button>
-        <button className="icon-button" type="button" onClick={onOpenSessions}>
-          ⋯
+        <button className="icon-button" type="button" onClick={onBack} aria-label="Back">
+          <FontAwesomeIcon icon={faArrowLeft} />
         </button>
       </header>
 
       <section className="compare-stage">
-        <div className="segmented">
-          <button
-            type="button"
-            className={compareMode === "overlay" ? "active" : ""}
-            onClick={() => onChangeMode("overlay")}
-          >
-            Overlay
-          </button>
-          <button
-            type="button"
-            className={compareMode === "slider" ? "active" : ""}
-            onClick={() => onChangeMode("slider")}
-          >
-            Slider
-          </button>
-        </div>
         {!referenceUrl && !drawingUrl ? (
           <div className="empty-state">
             <p>Add your reference and your drawing to compare.</p>
             <div className="empty-actions">
               <button className="secondary-button" onClick={onAddReference}>
                 Add reference
-              </button>
-              <button className="secondary-button" onClick={onAddDrawing}>
-                Add drawing
               </button>
             </div>
           </div>
@@ -248,6 +279,7 @@ export default function CompareView({
             <div className={guideClass} />
             {compareMode === "overlay" ? (
               <div className="overlay-stack">
+                <span className="compare-pane-tag reference-tag" aria-hidden>OVERLAY</span>
                 {referenceUrl && (
                   <ProgressiveImage
                     src={referenceUrl}
@@ -280,49 +312,79 @@ export default function CompareView({
             ) : (
               <div
                 ref={sliderTrackRef}
-                className="slider-stack"
+                className={`slider-stack ${splitOrientation === "vertical" ? "slider-stack-vertical" : ""}`}
                 role="slider"
                 aria-valuemin={0}
                 aria-valuemax={100}
                 aria-valuenow={Math.round(sliderValue)}
-                aria-label="Reveal reference or drawing"
+                aria-label={
+                  splitOrientation === "horizontal"
+                    ? "Adjust split between reference and drawing"
+                    : "Adjust split between reference (top) and drawing (bottom)"
+                }
                 tabIndex={0}
                 onPointerDown={handleSliderPointerDown}
                 onPointerMove={handleSliderPointerMove}
                 onKeyDown={handleSliderKeyDown}
               >
-                {referenceUrl && (
-                  <ProgressiveImage
-                    src={referenceUrl}
-                    previewUrl={referencePreviewUrl}
-                    alt="Reference"
-                    className="base-image"
-                    decoding="async"
-                    fetchPriority="high"
-                  />
-                )}
-                {drawingUrl && (
-                  <div
-                    className="slider-mask"
-                    style={{
-                      clipPath: `inset(0 ${100 - sliderValue}% 0 0)`
-                    }}
-                  >
+                <div
+                  className="slider-pane slider-pane-first"
+                  style={
+                    splitOrientation === "horizontal"
+                      ? { width: `${sliderValue}%` }
+                      : { top: 0, height: `${sliderValue}%` }
+                  }
+                >
+                  <span className="compare-pane-tag reference-tag" aria-hidden>REFERENCE</span>
+                  {referenceUrl && (
+                    <ProgressiveImage
+                      src={referenceUrl}
+                      previewUrl={referencePreviewUrl}
+                      alt="Reference"
+                      className="slider-pane-image"
+                      decoding="async"
+                      fetchPriority="high"
+                    />
+                  )}
+                </div>
+                <div
+                  className="slider-pane slider-pane-second"
+                  style={
+                    splitOrientation === "horizontal"
+                      ? { left: `${sliderValue}%`, width: `${100 - sliderValue}%` }
+                      : { top: `${sliderValue}%`, height: `${100 - sliderValue}%` }
+                  }
+                >
+                  <span className="compare-pane-tag drawing-tag" aria-hidden>DRAWING</span>
+                  {drawingUrl && (
                     <ProgressiveImage
                       src={drawingUrl}
                       previewUrl={drawingPreviewUrl}
                       alt="Drawing"
-                      className="base-image"
-                      style={{ opacity: overlaySettings.opacity }}
+                      className="slider-pane-image"
                       decoding="async"
                       fetchPriority="high"
                     />
-                  </div>
-                )}
+                  )}
+                </div>
                 <div
                   className="slider-handle"
-                  style={{ left: `${sliderValue}%` }}
-                />
+                  style={
+                    splitOrientation === "horizontal"
+                      ? { left: `${sliderValue}%` }
+                      : { left: "50%", top: `${sliderValue}%` }
+                  }
+                  aria-hidden
+                  onPointerDown={handleSliderHandlePointerDown}
+                  onPointerMove={handleSliderHandlePointerMove}
+                  onPointerUp={handleSliderHandlePointerUp}
+                  onPointerCancel={handleSliderHandlePointerUp}
+                  onDoubleClick={handleSliderHandleDoubleClick}
+                >
+                  <span className="slider-handle-icon">
+                    {splitOrientation === "horizontal" ? "< >" : "\u2191 \u2193"}
+                  </span>
+                </div>
               </div>
             )}
           </div>
@@ -330,17 +392,54 @@ export default function CompareView({
       </section>
 
       <footer className="compare-footer">
-        <button className="secondary-button" onClick={onAddDrawing}>
-          Add drawing
-        </button>
+        <div className="segmented">
+          <button
+            type="button"
+            className={compareMode === "slider" ? "active" : ""}
+            onClick={() => onChangeMode("slider")}
+          >
+            Side-by-Side
+          </button>
+          <button
+            type="button"
+            className={compareMode === "overlay" ? "active" : ""}
+            onClick={() => onChangeMode("overlay")}
+          >
+            Overlay
+          </button>
+        </div>
+        {compareMode === "overlay" && (
+          <div className="compare-opacity-row">
+            <span className="compare-opacity-label">DRAWING OPACITY</span>
+            <div className="compare-opacity-slider-wrap">
+              <span className="compare-opacity-pct" aria-hidden>0%</span>
+              <input
+                type="range"
+                min={0}
+                max={100}
+                value={Math.round(overlaySettings.opacity * 100)}
+                onChange={(e) =>
+                  onChangeOverlay({
+                    ...overlaySettings,
+                    opacity: Number(e.target.value) / 100
+                  })
+                }
+                className="compare-opacity-slider"
+                aria-label="Drawing opacity"
+              />
+              <span className="compare-opacity-pct" aria-hidden>100%</span>
+            </div>
+          </div>
+        )}
         <button
           type="button"
           className="primary-button"
           disabled={!drawingUrl}
           onClick={() => onEvaluate?.()}
-          title={!drawingUrl ? "Add a drawing to evaluate" : undefined}
+          title={!drawingUrl ? "Add a drawing to evaluate" : "View tips and analysis"}
+          aria-label="View tips and analysis"
         >
-          Evaluate
+          ✨ View tips & analysis
         </button>
       </footer>
     </div>
