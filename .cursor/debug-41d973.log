@@ -409,3 +409,34 @@
 {"sessionId":"41d973","location":"CaptureReferenceOverlay.tsx:getUserMedia","message":"camera stream ready","data":{},"timestamp":1771647786227,"hypothesisId":"H_scan_camera_ok"}
 {"sessionId":"41d973","location":"App.tsx:state","message":"showDrawingCameraFromReference","data":{"showDrawingCameraFromReference":false},"timestamp":1771648105242,"hypothesisId":"H_scan_state"}
 {"sessionId":"41d973","location":"App.tsx:state","message":"showDrawingCameraFromReference","data":{"showDrawingCameraFromReference":false},"timestamp":1771648105242,"hypothesisId":"H_scan_state"}
+{"sessionId":"41d973","location":"App.tsx:state","message":"showDrawingCameraFromReference","data":{"showDrawingCameraFromReference":false},"timestamp":1771648259445,"hypothesisId":"H_scan_state"}
+{"sessionId":"41d973","location":"App.tsx:state","message":"showDrawingCameraFromReference","data":{"showDrawingCameraFromReference":false},"timestamp":1771648259445,"hypothesisId":"H_scan_state"}
+{"sessionId":"41d973","location":"App.tsx:state","message":"showDrawingCameraFromReference","data":{"showDrawingCameraFromReference":false},"timestamp":1771648295276,"hypothesisId":"H_scan_state"}
+{"sessionId":"41d973","location":"CaptureReferenceOverlay.tsx:open","message":"overlay open, requesting camera","data":{"open":true,"variant":"reference"},"timestamp":1771648315640,"hypothesisId":"H_scan_open"}
+{"sessionId":"41d973","location":"CaptureReferenceOverlay.tsx:getUserMedia","message":"camera stream ready","data":{},"timestamp":1771648317463,"hypothesisId":"H_scan_camera_ok"}
+{"sessionId":"41d973","location":"CaptureReferenceOverlay.tsx:open","message":"overlay open, requesting camera","data":{"open":true,"variant":"reference"},"timestamp":1771648383536,"hypothesisId":"H_scan_open"}
+{"sessionId":"41d973","location":"CaptureReferenceOverlay.tsx:getUserMedia","message":"camera stream ready","data":{},"timestamp":1771648384829,"hypothesisId":"H_scan_camera_ok"}
+{"sessionId":"41d973","location":"App.tsx:state","message":"showDrawingCameraFromReference","data":{"showDrawingCameraFromReference":false},"timestamp":1771648386445,"hypothesisId":"H_scan_state"}
+{"sessionId":"41d973","location":"App.tsx:state","message":"showDrawingCameraFromReference","data":{"showDrawingCameraFromReference":false},"timestamp":1771648387160,"hypothesisId":"H_scan_state"}
+{"sessionId":"41d973","location":"App.tsx:state","message":"showDrawingCameraFromReference","data":{"showDrawingCameraFromReference":false},"timestamp":1771648387941,"hypothesisId":"H_scan_state"}
+{"sessionId":"41d973","location":"App.tsx:state","message":"showDrawingCameraFromReference","data":{"showDrawingCameraFromReference":false},"timestamp":1771648395489,"hypothesisId":"H_scan_state"}
+{"sessionId":"41d973","location":"CaptureReferenceOverlay.tsx:open","message":"overlay open, requesting camera","data":{"open":true,"variant":"reference"},"timestamp":1771648398318,"hypothesisId":"H_scan_open"}
+{"sessionId":"41d973","location":"CaptureReferenceOverlay.tsx:getUserMedia","message":"camera stream ready","data":{},"timestamp":1771648400136,"hypothesisId":"H_scan_camera_ok"}
+{"sessionId":"41d973","location":"App.tsx:state","message":"showDrawingCameraFromReference","data":{"showDrawingCameraFromReference":false},"timestamp":1771648408634,"hypothesisId":"H_scan_state"}
+{"sessionId":"41d973","location":"App.tsx:state","message":"showDrawingCameraFromReference","data":{"showDrawingCameraFromReference":false},"timestamp":1771648413031,"hypothesisId":"H_scan_state"}
+{"sessionId":"41d973","location":"CaptureReferenceOverlay.tsx:open","message":"overlay open, requesting camera","data":{"open":true,"variant":"reference"},"timestamp":1771648415171,"hypothesisId":"H_scan_open"}
+{"sessionId":"41d973","location":"CaptureReferenceOverlay.tsx:getUserMedia","message":"camera stream ready","data":{},"timestamp":1771648416954,"hypothesisId":"H_scan_camera_ok"}
+{"sessionId":"41d973","location":"CaptureReferenceOverlay.tsx:open","message":"overlay open, requesting camera","data":{"open":true,"variant":"reference"},"timestamp":1771648452796,"hypothesisId":"H_scan_open"}
+{"sessionId":"41d973","location":"CaptureReferenceOverlay.tsx:getUserMedia","message":"camera stream ready","data":{},"timestamp":1771648454086,"hypothesisId":"H_scan_camera_ok"}
+{"sessionId":"41d973","location":"App.tsx:state","message":"showDrawingCameraFromReference","data":{"showDrawingCameraFromReference":false},"timestamp":1771648463692,"hypothesisId":"H_scan_state"}
+{"sessionId":"41d973","location":"ReferenceView.tsx:click","message":"Scan my sketch clicked","data":{},"timestamp":1771648469927,"hypothesisId":"H_scan_click"}
+{"sessionId":"41d973","location":"CaptureReferenceOverlay.tsx:open","message":"overlay open, requesting camera","data":{"open":true,"variant":"drawing"},"timestamp":1771648469928,"hypothesisId":"H_scan_open"}
+{"sessionId":"41d973","location":"App.tsx:state","message":"showDrawingCameraFromReference","data":{"showDrawingCameraFromReference":true},"timestamp":1771648469928,"hypothesisId":"H_scan_state"}
+{"sessionId":"41d973","location":"CaptureReferenceOverlay.tsx:open","message":"overlay open, requesting camera","data":{"open":true,"variant":"drawing"},"timestamp":1771648469929,"hypothesisId":"H_scan_open"}
+{"sessionId":"41d973","location":"CaptureReferenceOverlay.tsx:getUserMedia","message":"camera stream ready","data":{},"timestamp":1771648471178,"hypothesisId":"H_scan_camera_ok"}
+{"sessionId":"41d973","location":"App.tsx:onClose","message":"drawing overlay onClose called","data":{},"timestamp":1771648472631,"hypothesisId":"H_scan_close"}
+{"sessionId":"41d973","location":"App.tsx:state","message":"showDrawingCameraFromReference","data":{"showDrawingCameraFromReference":false},"timestamp":1771648472634,"hypothesisId":"H_scan_state"}
+{"sessionId":"41d973","location":"App.tsx:state","message":"showDrawingCameraFromReference","data":{"showDrawingCameraFromReference":false},"timestamp":1771648515739,"hypothesisId":"H_scan_state"}
+{"sessionId":"41d973","location":"App.tsx:state","message":"showDrawingCameraFromReference","data":{"showDrawingCameraFromReference":false},"timestamp":1771648518775,"hypothesisId":"H_scan_state"}
+{"sessionId":"41d973","location":"App.tsx:state","message":"showDrawingCameraFromReference","data":{"showDrawingCameraFromReference":false},"timestamp":1771648528420,"hypothesisId":"H_scan_state"}
+{"sessionId":"41d973","location":"App.tsx:state","message":"showDrawingCameraFromReference","data":{"showDrawingCameraFromReference":false},"timestamp":1771648528420,"hypothesisId":"H_scan_state"}
